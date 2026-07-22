@@ -1,0 +1,45 @@
+2026-07-13T14:29:58.166Z INFO Is remote: false
+2026-07-13T14:29:58.168Z INFO Starting Local. Installation path: undefined
+2026-07-13T14:29:58.169Z INFO [MainProvider] Creating new MainProvider instance...
+2026-07-13T14:29:58.171Z INFO [TabsManager] Code view listener set up at initialization
+2026-07-13T14:29:58.172Z INFO Installation path exists: d:\AQI Prediction\backend
+2026-07-13T14:29:58.173Z INFO Initializing database with URL: file:C:\Users\palas\AppData\Local\Temp\pythagora-temp\pythagora.db
+2026-07-13T14:29:58.181Z INFO Database file exists, skipping prisma generate/push for faster startup
+2026-07-13T14:29:58.181Z INFO Database initialized successfully
+2026-07-13T14:29:58.183Z INFO [Migration] Checking for database migration...
+2026-07-13T14:30:00.322Z INFO [Migration] No migration needed
+2026-07-13T15:10:25.694Z INFO [TabsManager] First file opened, triggering split view
+2026-07-13T15:10:25.696Z INFO [MainProvider] First file opened, creating split view
+2026-07-14T02:16:04.855Z INFO [TabsManager] First file opened, triggering split view
+2026-07-14T02:16:04.856Z INFO [MainProvider] First file opened, creating split view
+2026-07-14T02:16:36.344Z INFO [TabsManager] First file opened, triggering split view
+2026-07-14T02:16:36.345Z INFO [MainProvider] First file opened, creating split view
+2026-07-14T02:16:49.218Z INFO Closing entire Pythagora extension...
+2026-07-14T02:16:49.284Z ERROR Error closing extension
+Error: Canceled
+Stack: Canceled: Canceled
+    at new nx (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:435:151894)
+    at i._remoteCall (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:435:157946)
+    at Proxy.r.<computed>.s.charCodeAt.r.<computed> (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:435:154741)
+    at Pg._doExecuteCommand (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:534:48252)
+    at Pg.executeCommand (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:534:47699)
+    at Object.executeCommand (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:673:136583)
+    at closeEntirePythagoraExtension (c:\Users\palas\.vscode\extensions\pythagoratechnologies.pythagora-vs-code-2.6.19\out\extension.js:542:31)
+    at Object.deactivate (c:\Users\palas\.vscode\extensions\pythagoratechnologies.pythagora-vs-code-2.6.19\out\extension.js:409:15)
+    at SP._deactivate (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:538:14483)
+    at file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:538:12010
+    at Array.map (<anonymous>)
+    at SP._deactivateAll (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:538:11998)
+    at SP.terminate (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:538:12349)
+    at i.terminate (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:540:1072)
+    at Js (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:837:11733)
+    at pp.value (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:837:9880)
+    at E._deliver (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:431:3244)
+    at E.fire (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:431:3562)
+    at ls.fire (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:433:8505)
+    at MessagePortMain.<anonymous> (file:///c:/Users/palas/AppData/Local/Programs/Microsoft%20VS%20Code/fcf604774b/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:837:8115)
+    at MessagePortMain.emit (node:events:509:28)
+    at Object.MessagePortMain._internalPort.emit (node:electron/js2c/utility_init:2:2934)
+Extra context: {
+  "message": "Canceled"
+}
