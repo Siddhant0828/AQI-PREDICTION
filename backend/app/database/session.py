@@ -1,13 +1,9 @@
-from collections.abc import AsyncGenerator
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.config.settings import settings
 
-engine = create_async_engine(str(settings.database_url), pool_pre_ping=True)
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+client = AsyncIOMotorClient(settings.mongodb_uri)
+db = client[settings.mongodb_db_name]
 
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
-        yield session
+async def get_db():
+    yield db

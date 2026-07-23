@@ -2,7 +2,6 @@ from datetime import date
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.air_quality import PredictionHistory
 from app.repositories.air_quality import PredictionHistoryRepository
@@ -12,10 +11,9 @@ from app.services.prediction import PredictionService, PredictionWorkflowService
 
 
 class AQIMapService:
-    def __init__(self, session: AsyncSession, prediction_service: PredictionService) -> None:
-        self.session = session
+    def __init__(self, prediction_service: PredictionService) -> None:
         self.prediction_service = prediction_service
-        self.prediction_history_repository = PredictionHistoryRepository(session)
+        self.prediction_history_repository = PredictionHistoryRepository()
 
     async def get_geojson(
         self,
@@ -44,7 +42,7 @@ class AQIMapService:
             return GeoJSONFeatureCollection()
 
         payload = PredictionRequest(latitude=latitude, longitude=longitude, date=target_date)
-        prediction = await PredictionWorkflowService(self.session, self.prediction_service).predict(
+        prediction = await PredictionWorkflowService(self.prediction_service).predict(
             payload
         )
         return GeoJSONFeatureCollection(

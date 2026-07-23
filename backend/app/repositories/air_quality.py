@@ -1,8 +1,6 @@
 from collections.abc import Sequence
 from datetime import date, datetime, time
-
-from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
 from app.models.air_quality import (
     Alert,
@@ -30,12 +28,12 @@ from app.schemas.air_quality import (
 
 
 class DatasetRepository(BaseRepository[Dataset, DatasetCreate, DatasetUpdate]):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(Dataset, session)
+    def __init__(self) -> None:
+        super().__init__(Dataset)
 
     async def list_by_uploader(
         self,
-        uploaded_by_id: int,
+        uploaded_by_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -43,19 +41,19 @@ class DatasetRepository(BaseRepository[Dataset, DatasetCreate, DatasetUpdate]):
         return await self.list(
             page=page,
             size=size,
-            statement=select(Dataset).where(Dataset.uploaded_by_id == uploaded_by_id),
+            query=Dataset.find(Dataset.uploaded_by.id == uploaded_by_id),
         )
 
 
 class PredictionHistoryRepository(
     BaseRepository[PredictionHistory, PredictionHistoryCreate, PredictionHistoryUpdate]
 ):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(PredictionHistory, session)
+    def __init__(self) -> None:
+        super().__init__(PredictionHistory)
 
     async def list_by_user(
         self,
-        user_id: int,
+        user_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -63,12 +61,12 @@ class PredictionHistoryRepository(
         return await self.list(
             page=page,
             size=size,
-            statement=select(PredictionHistory).where(PredictionHistory.user_id == user_id),
+            query=PredictionHistory.find(PredictionHistory.user.id == user_id),
         )
 
     async def list_by_dataset(
         self,
-        dataset_id: int,
+        dataset_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -76,20 +74,15 @@ class PredictionHistoryRepository(
         return await self.list(
             page=page,
             size=size,
-            statement=select(PredictionHistory).where(PredictionHistory.dataset_id == dataset_id),
+            query=PredictionHistory.find(PredictionHistory.dataset.id == dataset_id),
         )
 
     async def list_for_aqi_map(self, *, limit: int = 500) -> Sequence[PredictionHistory]:
-        result = await self.session.execute(
-            select(PredictionHistory)
-            .where(
-                PredictionHistory.latitude.is_not(None),
-                PredictionHistory.longitude.is_not(None),
-            )
-            .order_by(desc(PredictionHistory.prediction_date), desc(PredictionHistory.id))
-            .limit(limit)
-        )
-        return result.scalars().all()
+        query = PredictionHistory.find(
+            PredictionHistory.latitude != None,
+            PredictionHistory.longitude != None
+        ).sort("-prediction_date", "-id").limit(limit)
+        return await query.to_list()
 
     async def list_for_report(
         self,
@@ -98,32 +91,23 @@ class PredictionHistoryRepository(
         end_date: date | None = None,
         limit: int = 1000,
     ) -> Sequence[PredictionHistory]:
-        stmt = select(PredictionHistory).order_by(
-            desc(PredictionHistory.prediction_date),
-            desc(PredictionHistory.id),
-        )
+        query_parts = []
         if start_date is not None:
-            stmt = stmt.where(
-                PredictionHistory.prediction_date
-                >= datetime.combine(start_date, time.min)
-            )
+            query_parts.append(PredictionHistory.prediction_date >= datetime.combine(start_date, time.min))
         if end_date is not None:
-            stmt = stmt.where(
-                PredictionHistory.prediction_date
-                <= datetime.combine(end_date, time.max)
-            )
+            query_parts.append(PredictionHistory.prediction_date <= datetime.combine(end_date, time.max))
 
-        result = await self.session.execute(stmt.limit(limit))
-        return result.scalars().all()
+        query = PredictionHistory.find(*query_parts).sort("-prediction_date", "-id").limit(limit)
+        return await query.to_list()
 
 
 class ReportRepository(BaseRepository[Report, ReportCreate, ReportUpdate]):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(Report, session)
+    def __init__(self) -> None:
+        super().__init__(Report)
 
     async def list_by_user(
         self,
-        generated_by_id: int,
+        generated_by_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -131,13 +115,13 @@ class ReportRepository(BaseRepository[Report, ReportCreate, ReportUpdate]):
         return await self.list(
             page=page,
             size=size,
-            statement=select(Report).where(Report.generated_by_id == generated_by_id),
+            query=Report.find(Report.generated_by.id == generated_by_id),
         )
 
 
 class HotspotRepository(BaseRepository[Hotspot, HotspotCreate, HotspotUpdate]):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(Hotspot, session)
+    def __init__(self) -> None:
+        super().__init__(Hotspot)
 
     async def list_active(
         self,
@@ -148,7 +132,7 @@ class HotspotRepository(BaseRepository[Hotspot, HotspotCreate, HotspotUpdate]):
         return await self.list(
             page=page,
             size=size,
-            statement=select(Hotspot).where(Hotspot.is_active.is_(True)),
+            query=Hotspot.find(Hotspot.is_active == True),
         )
 
     async def list_for_report(
@@ -157,21 +141,21 @@ class HotspotRepository(BaseRepository[Hotspot, HotspotCreate, HotspotUpdate]):
         active_only: bool = False,
         limit: int = 1000,
     ) -> Sequence[Hotspot]:
-        stmt = select(Hotspot).order_by(desc(Hotspot.detected_at), desc(Hotspot.id))
+        query_parts = []
         if active_only:
-            stmt = stmt.where(Hotspot.is_active.is_(True))
+            query_parts.append(Hotspot.is_active == True)
 
-        result = await self.session.execute(stmt.limit(limit))
-        return result.scalars().all()
+        query = Hotspot.find(*query_parts).sort("-detected_at", "-id").limit(limit)
+        return await query.to_list()
 
 
 class AlertRepository(BaseRepository[Alert, AlertCreate, AlertUpdate]):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(Alert, session)
+    def __init__(self) -> None:
+        super().__init__(Alert)
 
     async def list_by_user(
         self,
-        user_id: int,
+        user_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -179,12 +163,12 @@ class AlertRepository(BaseRepository[Alert, AlertCreate, AlertUpdate]):
         return await self.list(
             page=page,
             size=size,
-            statement=select(Alert).where(Alert.user_id == user_id),
+            query=Alert.find(Alert.user.id == user_id),
         )
 
     async def list_by_hotspot(
         self,
-        hotspot_id: int,
+        hotspot_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -192,19 +176,19 @@ class AlertRepository(BaseRepository[Alert, AlertCreate, AlertUpdate]):
         return await self.list(
             page=page,
             size=size,
-            statement=select(Alert).where(Alert.hotspot_id == hotspot_id),
+            query=Alert.find(Alert.hotspot.id == hotspot_id),
         )
 
 
 class ModelMetadataRepository(
     BaseRepository[ModelMetadata, ModelMetadataCreate, ModelMetadataUpdate]
 ):
-    def __init__(self, session: AsyncSession) -> None:
-        super().__init__(ModelMetadata, session)
+    def __init__(self) -> None:
+        super().__init__(ModelMetadata)
 
     async def list_by_dataset(
         self,
-        dataset_id: int,
+        dataset_id: Any,
         *,
         page: int = 1,
         size: int = 20,
@@ -212,5 +196,5 @@ class ModelMetadataRepository(
         return await self.list(
             page=page,
             size=size,
-            statement=select(ModelMetadata).where(ModelMetadata.dataset_id == dataset_id),
+            query=ModelMetadata.find(ModelMetadata.dataset.id == dataset_id),
         )

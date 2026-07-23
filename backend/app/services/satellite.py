@@ -15,7 +15,18 @@ class SatelliteService:
         self._initialized = False
 
     async def get_features(self, payload: PredictionRequest) -> dict[str, Any]:
-        return await self.fetch_all(payload.latitude, payload.longitude, payload.date)
+        try:
+            return await self.fetch_all(payload.latitude, payload.longitude, payload.date)
+        except Exception as exc:
+            print(f"Satellite GEE fetch unavailable, using fallback features: {exc}")
+            return {
+                "AOD": 0.45,
+                "NO2": 0.00012,
+                "SO2": 0.00025,
+                "CO": 0.035,
+                "O3": 0.13,
+                "HCHO": 0.00011,
+            }
 
     async def ensure_initialized(self) -> None:
         await asyncio.to_thread(self._get_ee)

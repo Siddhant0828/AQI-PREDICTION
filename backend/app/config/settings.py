@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,9 +10,10 @@ class Settings(BaseSettings):
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
 
-    database_url: str | PostgresDsn = Field(
-        default="postgresql+asyncpg://aqi_user:change-me@localhost:5432/aqi_monitoring"
+    mongodb_uri: str = Field(
+        default="mongodb://localhost:27017"
     )
+    mongodb_db_name: str = "aqi_monitoring"
 
     jwt_secret_key: str = "change-this-secret"
     jwt_algorithm: str = "HS256"
@@ -22,7 +23,11 @@ class Settings(BaseSettings):
     backend_cors_origins: list[str] = Field(default_factory=list)
     log_level: str = "INFO"
 
-    open_meteo_timeout_seconds: int = 10
+    open_meteo_timeout_seconds: int = Field(default=10)
+    
+    # WAQI (CPCB) Configuration
+    waqi_api_token: str = Field(default="")
+    cpcb_max_radius_km: float = Field(default=50.0)
     open_meteo_retry_count: int = 3
     open_meteo_retry_backoff_seconds: float = 1.0
 
