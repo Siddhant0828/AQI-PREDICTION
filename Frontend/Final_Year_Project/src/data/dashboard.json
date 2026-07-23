@@ -1,0 +1,202 @@
+{
+  "kpis": [
+    {
+      "id": "aqi",
+      "label": "Current AQI",
+      "value": 248,
+      "category": "Very Unhealthy",
+      "categoryColor": "#EF4444",
+      "trend": 12,
+      "trendDirection": "up",
+      "icon": "Wind"
+    },
+    {
+      "id": "category",
+      "label": "AQI Category",
+      "value": 0,
+      "category": "Very Unhealthy",
+      "categoryColor": "#EF4444",
+      "icon": "Activity"
+    },
+    {
+      "id": "hcho",
+      "label": "HCHO Hotspots",
+      "value": 37,
+      "unit": "active",
+      "trend": 5,
+      "trendDirection": "up",
+      "icon": "Flame"
+    },
+    {
+      "id": "fires",
+      "label": "Fire Points",
+      "value": 1284,
+      "unit": "detected",
+      "trend": 8,
+      "trendDirection": "down",
+      "icon": "Flame"
+    },
+    {
+      "id": "accuracy",
+      "label": "Model Accuracy",
+      "value": 94.2,
+      "unit": "%",
+      "trend": 1.8,
+      "trendDirection": "up",
+      "icon": "Target"
+    }
+  ],
+  "topCities": [
+    { "city": "Delhi", "state": "Delhi", "aqi": 412, "category": "Severe", "trend": 15 },
+    { "city": "Lucknow", "state": "Uttar Pradesh", "aqi": 358, "category": "Very Unhealthy", "trend": 9 },
+    { "city": "Patna", "state": "Bihar", "aqi": 312, "category": "Very Unhealthy", "trend": 7 },
+    { "city": "Kolkata", "state": "West Bengal", "aqi": 287, "category": "Very Unhealthy", "trend": 4 },
+    { "city": "Jaipur", "state": "Rajasthan", "aqi": 248, "category": "Very Unhealthy", "trend": 6 },
+    { "city": "Ahmedabad", "state": "Gujarat", "aqi": 224, "category": "Very Unhealthy", "trend": -3 },
+    { "city": "Hyderabad", "state": "Telangana", "aqi": 189, "category": "Unhealthy", "trend": 2 },
+    { "city": "Mumbai", "state": "Maharashtra", "aqi": 167, "category": "Unhealthy", "trend": -5 }
+  ],
+  "trend": [
+    { "date": "00:00", "aqi": 165, "pm25": 92, "pm10": 148, "no2": 54 },
+    { "date": "03:00", "aqi": 182, "pm25": 101, "pm10": 156, "no2": 58 },
+    { "date": "06:00", "aqi": 198, "pm25": 112, "pm10": 168, "no2": 62 },
+    { "date": "09:00", "aqi": 224, "pm25": 128, "pm10": 184, "no2": 71 },
+    { "date": "12:00", "aqi": 248, "pm25": 142, "pm10": 198, "no2": 78 },
+    { "date": "15:00", "aqi": 236, "pm25": 135, "pm10": 192, "no2": 74 },
+    { "date": "18:00", "aqi": 254, "pm25": 148, "pm10": 206, "no2": 82 },
+    { "date": "21:00", "aqi": 241, "pm25": 139, "pm10": 201, "no2": 76 }
+  ],
+  "hotspots": [
+    { "id": "h1", "location": "Punjab North", "state": "Punjab", "lat": 31.15, "lng": 75.34, "hcho": 8.4, "fires": 142, "intensity": "high" },
+    { "id": "h2", "location": "Haryana Belt", "state": "Haryana", "lat": 29.05, "lng": 76.13, "hcho": 7.2, "fires": 98, "intensity": "high" },
+    { "id": "h3", "location": "Western UP", "state": "Uttar Pradesh", "lat": 27.87, "lng": 78.02, "hcho": 6.1, "fires": 76, "intensity": "medium" },
+    { "id": "h4", "location": "Central MP", "state": "Madhya Pradesh", "lat": 23.25, "lng": 77.41, "hcho": 4.8, "fires": 54, "intensity": "medium" },
+    { "id": "h5", "location": "Vidarbha", "state": "Maharashtra", "lat": 20.95, "lng": 78.95, "hcho": 5.3, "fires": 87, "intensity": "medium" },
+    { "id": "h6", "location": "Coastal Odisha", "state": "Odisha", "lat": 20.95, "lng": 85.09, "hcho": 3.7, "fires": 43, "intensity": "low" },
+    { "id": "h7", "location": "Telangana South", "state": "Telangana", "lat": 17.0, "lng": 79.0, "hcho": 4.1, "fires": 62, "intensity": "low" }
+  ],
+  "forecast": [
+    { "date": "Today", "predicted": 248, "confidence": 94 },
+    { "date": "+1 Day", "predicted": 262, "confidence": 88 },
+    { "date": "+2 Days", "predicted": 278, "confidence": 82 },
+    { "date": "+3 Days", "predicted": 254, "confidence": 76 },
+    { "date": "+4 Days", "predicted": 231, "confidence": 71 },
+    { "date": "+5 Days", "predicted": 208, "confidence": 65 }
+  ],
+  "dataSources": [
+    { "name": "INSAT-3DR", "status": "operational", "lastSync": "2 min ago", "coverage": 98 },
+    { "name": "Sentinel-5P", "status": "operational", "lastSync": "11 min ago", "coverage": 94 },
+    { "name": "CPCB Network", "status": "operational", "lastSync": "1 min ago", "coverage": 91 },
+    { "name": "MODIS Aqua", "status": "degraded", "lastSync": "34 min ago", "coverage": 78 },
+    { "name": "ERA5 Reanalysis", "status": "operational", "lastSync": "5 min ago", "coverage": 99 }
+  ],
+  "populationImpact": {
+    "exposed": 187000000,
+    "severeExposure": 64000000,
+    "childrenAffected": 23000000,
+    "elderlyAffected": 18000000
+  },
+  "currentLocation": {
+    "city": "New Delhi",
+    "state": "Delhi NCR",
+    "aqi": 412,
+    "category": "Severe",
+    "categoryColor": "#7E0023",
+    "updated": "10:15 AM IST"
+  },
+  "weather": {
+    "humidity": 68,
+    "humidityUnit": "%",
+    "windSpeed": 12,
+    "windSpeedUnit": "km/h",
+    "windDirection": "NW",
+    "temperature": 32,
+    "temperatureUnit": "°C",
+    "feelsLike": 38
+  },
+  "pm25": {
+    "value": 142,
+    "unit": "µg/m³",
+    "dailyLimit": 60,
+    "status": "Critical",
+    "statusColor": "#EF4444",
+    "whoLimit": 15,
+    "trend24h": [
+      { "time": "00:00", "pm25": 92 },
+      { "time": "03:00", "pm25": 101 },
+      { "time": "06:00", "pm25": 112 },
+      { "time": "09:00", "pm25": 128 },
+      { "time": "12:00", "pm25": 142 },
+      { "time": "15:00", "pm25": 135 },
+      { "time": "18:00", "pm25": 148 },
+      { "time": "21:00", "pm25": 139 }
+    ]
+  },
+  "gases": [
+    { "name": "NO₂", "value": 78, "unit": "µg/m³", "limit": 80, "color": "#F97316", "trend": 5 },
+    { "name": "SO₂", "value": 22, "unit": "µg/m³", "limit": 50, "color": "#22C55E", "trend": -2 },
+    { "name": "CO", "value": 1.4, "unit": "mg/m³", "limit": 2.0, "color": "#EAB308", "trend": 3 },
+    { "name": "O₃", "value": 64, "unit": "µg/m³", "limit": 100, "color": "#3B82F6", "trend": 8 },
+    { "name": "NH₃", "value": 19, "unit": "µg/m³", "limit": 400, "color": "#22C55E", "trend": -1 },
+    { "name": "Pb", "value": 0.08, "unit": "µg/m³", "limit": 0.5, "color": "#22C55E", "trend": 0 }
+  ],
+  "aqiScale": [
+    { "label": "Good", "range": "0–50", "color": "#22C55E" },
+    { "label": "Satisfactory", "range": "51–100", "color": "#84CC16" },
+    { "label": "Moderate", "range": "101–200", "color": "#EAB308" },
+    { "label": "Poor", "range": "201–300", "color": "#F97316" },
+    { "label": "Very Poor", "range": "301–400", "color": "#EF4444" },
+    { "label": "Severe", "range": "401–500+", "color": "#7E0023" }
+  ],
+  "trendMulti": {
+    "24days": [
+      { "date": "D1", "aqi": 198, "pm25": 112, "no2": 62 },
+      { "date": "D2", "aqi": 210, "pm25": 118, "no2": 65 },
+      { "date": "D3", "aqi": 225, "pm25": 125, "no2": 68 },
+      { "date": "D4", "aqi": 240, "pm25": 132, "no2": 72 },
+      { "date": "D5", "aqi": 235, "pm25": 130, "no2": 70 },
+      { "date": "D6", "aqi": 248, "pm25": 142, "no2": 78 },
+      { "date": "D7", "aqi": 254, "pm25": 148, "no2": 82 },
+      { "date": "D8", "aqi": 242, "pm25": 139, "no2": 76 },
+      { "date": "D9", "aqi": 228, "pm25": 131, "no2": 71 },
+      { "date": "D10", "aqi": 215, "pm25": 122, "no2": 67 },
+      { "date": "D11", "aqi": 232, "pm25": 128, "no2": 73 },
+      { "date": "D12", "aqi": 245, "pm25": 136, "no2": 75 },
+      { "date": "D13", "aqi": 260, "pm25": 151, "no2": 84 },
+      { "date": "D14", "aqi": 272, "pm25": 158, "no2": 88 },
+      { "date": "D15", "aqi": 268, "pm25": 156, "no2": 86 },
+      { "date": "D16", "aqi": 255, "pm25": 149, "no2": 82 },
+      { "date": "D17", "aqi": 248, "pm25": 142, "no2": 78 },
+      { "date": "D18", "aqi": 236, "pm25": 135, "no2": 74 },
+      { "date": "D19", "aqi": 228, "pm25": 131, "no2": 71 },
+      { "date": "D20", "aqi": 240, "pm25": 138, "no2": 76 },
+      { "date": "D21", "aqi": 252, "pm25": 145, "no2": 80 },
+      { "date": "D22", "aqi": 264, "pm25": 153, "no2": 84 },
+      { "date": "D23", "aqi": 258, "pm25": 150, "no2": 82 },
+      { "date": "D24", "aqi": 248, "pm25": 142, "no2": 78 }
+    ],
+    "7days": [
+      { "date": "Mon", "aqi": 198, "pm25": 112, "no2": 62 },
+      { "date": "Tue", "aqi": 225, "pm25": 125, "no2": 68 },
+      { "date": "Wed", "aqi": 248, "pm25": 142, "no2": 78 },
+      { "date": "Thu", "aqi": 254, "pm25": 148, "no2": 82 },
+      { "date": "Fri", "aqi": 236, "pm25": 135, "no2": 74 },
+      { "date": "Sat", "aqi": 228, "pm25": 131, "no2": 71 },
+      { "date": "Sun", "aqi": 248, "pm25": 142, "no2": 78 }
+    ],
+    "1year": [
+      { "date": "Jan", "aqi": 285, "pm25": 165, "no2": 88 },
+      { "date": "Feb", "aqi": 268, "pm25": 152, "no2": 82 },
+      { "date": "Mar", "aqi": 220, "pm25": 128, "no2": 70 },
+      { "date": "Apr", "aqi": 185, "pm25": 105, "no2": 58 },
+      { "date": "May", "aqi": 142, "pm25": 82, "no2": 45 },
+      { "date": "Jun", "aqi": 98, "pm25": 55, "no2": 32 },
+      { "date": "Jul", "aqi": 75, "pm25": 42, "no2": 25 },
+      { "date": "Aug", "aqi": 82, "pm25": 48, "no2": 28 },
+      { "date": "Sep", "aqi": 115, "pm25": 68, "no2": 38 },
+      { "date": "Oct", "aqi": 178, "pm25": 102, "no2": 55 },
+      { "date": "Nov", "aqi": 248, "pm25": 142, "no2": 78 },
+      { "date": "Dec", "aqi": 295, "pm25": 172, "no2": 92 }
+    ]
+  }
+}

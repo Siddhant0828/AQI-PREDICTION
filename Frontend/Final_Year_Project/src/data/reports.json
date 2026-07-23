@@ -1,0 +1,19 @@
+{
+  "regions": ["National — India", "Delhi NCR", "Indo-Gangetic Plain", "Maharashtra", "Telangana", "West Bengal"],
+  "indicators": ["AQI", "PM2.5", "PM10", "NO2", "SO2", "CO", "O3", "HCHO", "Fire Counts"],
+  "formats": ["PDF", "CSV", "GeoTIFF", "NetCDF", "JSON"],
+  "previewSections": [
+    { "id": "s1", "title": "Executive Summary", "type": "text" },
+    { "id": "s2", "title": "Regional Heatmap", "type": "heatmap" },
+    { "id": "s3", "title": "Statistical Distribution", "type": "table" },
+    { "id": "s4", "title": "Pollutant Trends", "type": "chart" },
+    { "id": "s5", "title": "Methodology", "type": "text" },
+    { "id": "s6", "title": "Data Sources & Appendix", "type": "text" }
+  ],
+  "stats": [
+    { "metric": "Stations Reporting", "value": "1,247" },
+    { "metric": "Satellite Passes", "value": "38" },
+    { "metric": "Validated Grid Cells", "value": "9,812" },
+    { "metric": "Model R²", "value": "0.94" }
+  ]
+}

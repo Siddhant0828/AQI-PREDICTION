@@ -1,0 +1,72 @@
+{
+  "alerts": [
+    {
+      "id": "a1",
+      "title": "Severe AQI Spike — Delhi NCR",
+      "severity": "red",
+      "region": "Delhi, NCR",
+      "time": "12 min ago",
+      "description": "AQI crossed 450 in multiple stations. HCHO plumes detected from northern agricultural fires. Immediate restriction of outdoor activity advised for all groups.",
+      "aqi": 412,
+      "channels": { "sms": true, "email": true, "push": true }
+    },
+    {
+      "id": "a2",
+      "title": "Very Unhealthy AQI — Lucknow",
+      "severity": "orange",
+      "region": "Lucknow, Uttar Pradesh",
+      "time": "38 min ago",
+      "description": "AQI at 358 with rising PM2.5 attributed to biomass burning transport. Sensitive groups should remain indoors.",
+      "aqi": 358,
+      "channels": { "sms": true, "email": true, "push": false }
+    },
+    {
+      "id": "a3",
+      "title": "Fire Cluster Detected — Punjab",
+      "severity": "orange",
+      "region": "Punjab North",
+      "time": "1 hr ago",
+      "description": "142 active fire points detected via MODIS. Downwind HCHO enhancement confirmed by Sentinel-5P.",
+      "aqi": 312,
+      "channels": { "sms": true, "email": false, "push": true }
+    },
+    {
+      "id": "a4",
+      "title": "Moderate AQI Advisory — Mumbai",
+      "severity": "yellow",
+      "region": "Mumbai, Maharashtra",
+      "time": "2 hr ago",
+      "description": "AQI at 167, attributed to vehicular and industrial emissions. No immediate action required for general population.",
+      "aqi": 167,
+      "channels": { "sms": false, "email": true, "push": true }
+    },
+    {
+      "id": "a5",
+      "title": "HCHO Hotspot — Vidarbha",
+      "severity": "yellow",
+      "region": "Vidarbha, Maharashtra",
+      "time": "3 hr ago",
+      "description": "Sustained HCHO column density above 5.0 × 10¹⁶ molecules/cm². Monitoring ongoing.",
+      "aqi": 198,
+      "channels": { "sms": false, "email": true, "push": false }
+    },
+    {
+      "id": "a6",
+      "title": "Dust Transport Event — Rajasthan",
+      "severity": "yellow",
+      "region": "Jaipur, Rajasthan",
+      "time": "4 hr ago",
+      "description": "Wind-driven dust raising PM10 to 248. Expected to persist for 6–8 hours.",
+      "aqi": 248,
+      "channels": { "sms": false, "email": false, "push": true }
+    }
+  ],
+  "dailySummary": {
+    "alertsIssued": 14,
+    "regionsCovered": 22,
+    "redAlerts": 2,
+    "orangeAlerts": 5,
+    "yellowAlerts": 7,
+    "audienceReached": 48000000
+  }
+}

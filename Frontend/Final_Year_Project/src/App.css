@@ -1,0 +1,21 @@
+.app-bg {
+  background: linear-gradient(180deg, #F5F7FB 0%, #EEF2F9 100%);
+}
+.dark .app-bg {
+  background: linear-gradient(180deg, #0a1020 0%, #0d1428 100%);
+}
+
+.glow-blue {
+  box-shadow: 0 0 22px rgba(18, 58, 143, 0.45);
+}
+
+.card-shadow {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+}
+.dark .card-shadow {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.sidebar-grad {
+  background: linear-gradient(180deg, #0d1f44 0%, #081634 60%, #050d23 100%);
+}
