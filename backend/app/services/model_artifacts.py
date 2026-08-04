@@ -19,18 +19,33 @@ class ModelArtifactService:
         self,
         *,
         model_path: Path = Path("models/cnn_lstm.keras"),
-        scaler_x_path: Path = Path("models/scaler_x.pkl"),
-        scaler_y_path: Path = Path("models/scaler_y.pkl"),
+        scaler_x_path: Path | None = None,
+        scaler_y_path: Path | None = None,
     ) -> None:
         self.model_path = model_path
-        self.scaler_x_path = scaler_x_path
-        self.scaler_y_path = scaler_y_path
+        
+        # Check for feature_scaler.pkl or fallback to scaler_x.pkl
+        if scaler_x_path is not None:
+            self.scaler_x_path = scaler_x_path
+        elif Path("models/feature_scaler.pkl").exists():
+            self.scaler_x_path = Path("models/feature_scaler.pkl")
+        else:
+            self.scaler_x_path = Path("models/scaler_x.pkl")
+
+        # Check for target_scaler.pkl or fallback to scaler_y.pkl
+        if scaler_y_path is not None:
+            self.scaler_y_path = scaler_y_path
+        elif Path("models/target_scaler.pkl").exists():
+            self.scaler_y_path = Path("models/target_scaler.pkl")
+        else:
+            self.scaler_y_path = Path("models/scaler_y.pkl")
+
         self._artifacts: ModelArtifacts | None = None
 
     @property
     def artifacts(self) -> ModelArtifacts:
         if self._artifacts is None:
-            raise ModelNotAvailableException(self.missing_files())
+            self.load_once()
         return self._artifacts
 
     def load_once(self) -> None:
@@ -60,7 +75,7 @@ class ModelArtifactService:
         except OSError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Prediction artifacts could not be loaded.",
+                detail=f"Prediction artifacts could not be loaded: {exc}",
             ) from exc
 
         self._artifacts = ModelArtifacts(model=model, scaler_x=scaler_x, scaler_y=scaler_y)

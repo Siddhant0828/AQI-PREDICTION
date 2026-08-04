@@ -1,15 +1,13 @@
 from datetime import datetime
-
 from pydantic import BaseModel, EmailStr
-
 from app.models.user import UserRole
 from app.schemas.base import BaseSchema
 
 
 class UserRead(BaseSchema):
-    id: int
+    id: str
     email: EmailStr
-    full_name: str | None
+    full_name: str | None = None
     role: UserRole
     is_active: bool
     created_at: datetime

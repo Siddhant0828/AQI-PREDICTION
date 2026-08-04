@@ -25,7 +25,7 @@ async def get_current_user(
         payload = decode_token(credentials.credentials)
         if payload.get("type") != "access" or not payload.get("sub"):
             raise ValueError("Invalid access token")
-        user_id = int(payload["sub"])
+        user_id = str(payload["sub"])
     except (ValueError, TypeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

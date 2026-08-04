@@ -1,8 +1,6 @@
 from typing import Any
-
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from pymongo.errors import DuplicateKeyError
 
 from app.core.security import (
     create_access_token,
@@ -17,10 +15,9 @@ from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 
 
 class AuthService:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
-        self.users = UserRepository(session)
-        self.refresh_tokens = RefreshTokenRepository(session)
+    def __init__(self) -> None:
+        self.users = UserRepository()
+        self.refresh_tokens = RefreshTokenRepository()
 
     async def register(self, payload: RegisterRequest) -> User:
         existing_user = await self.users.get_by_email(payload.email)
@@ -38,10 +35,8 @@ class AuthService:
         )
 
         try:
-            user = await self.users.create(user)
-            await self.session.commit()
-        except IntegrityError as exc:
-            await self.session.rollback()
+            user = await self.users.create_user(user)
+        except DuplicateKeyError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A user with this email already exists.",
@@ -69,19 +64,18 @@ class AuthService:
         await self.refresh_tokens.create(
             token=refresh_token,
             token_id=token_id,
-            user_id=user.id,
+            user=user,
             expires_at=expires_at,
         )
-        await self.session.commit()
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
     async def logout(self, *, user: User, refresh_token: str) -> None:
         payload = self._decode_refresh_token(refresh_token)
-        token_user_id = int(payload["sub"])
+        token_user_id = str(payload["sub"])
         token_id = payload["jti"]
 
-        if token_user_id != user.id:
+        if token_user_id != str(user.id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Refresh token does not belong to the authenticated user.",
@@ -95,7 +89,6 @@ class AuthService:
             )
 
         await self.refresh_tokens.revoke(stored_token)
-        await self.session.commit()
 
     def _decode_refresh_token(self, token: str) -> dict[str, Any]:
         try:

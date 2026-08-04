@@ -11,10 +11,17 @@ class UserRepository(BaseRepository[User, Any, Any]):
         super().__init__(User)
 
     async def get_by_id(self, user_id: Any) -> User | None:
-        return await User.get(user_id)
+        try:
+            return await User.get(str(user_id))
+        except Exception:
+            return None
 
     async def get_by_email(self, email: str) -> User | None:
         return await User.find_one(User.email == email.lower())
+
+    async def create_user(self, user: User) -> User:
+        await user.insert()
+        return user
 
 
 class RefreshTokenRepository(BaseRepository[RefreshToken, Any, Any]):
@@ -26,13 +33,13 @@ class RefreshTokenRepository(BaseRepository[RefreshToken, Any, Any]):
         *,
         token: str,
         token_id: str,
-        user_id: Any,
+        user: Any,
         expires_at: datetime,
     ) -> RefreshToken:
         refresh_token = RefreshToken(
             token_id=token_id,
             token_hash=hash_token(token),
-            user_id=user_id,
+            user=user,
             expires_at=expires_at,
         )
         await refresh_token.insert()

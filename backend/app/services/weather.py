@@ -1,9 +1,10 @@
 import asyncio
+from datetime import date
 import time
 from typing import Any
 
-import requests
 from fastapi import HTTPException, status
+import requests
 
 from app.config.settings import settings
 from app.schemas.prediction import PredictionRequest
@@ -61,6 +62,75 @@ class WeatherService:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Open-Meteo request failed after retries: {last_error}",
         )
+
+    async def fetch_21day_weather(
+        self, latitude: float, longitude: float, target_date: date
+    ) -> list[dict[str, float]]:
+        """
+        Fetches hourly weather data for past 20 days + target_date (21 days total)
+        and aggregates into daily averages for Temperature, Humidity, and Wind Speed.
+        """
+        return await asyncio.to_thread(
+            self._fetch_21day_weather_sync, latitude, longitude
+        )
+
+    def _fetch_21day_weather_sync(
+        self, latitude: float, longitude: float
+    ) -> list[dict[str, float]]:
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "past_days": 20,
+            "forecast_days": 1,
+            "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m",
+        }
+
+        try:
+            response = requests.get(
+                self.base_url,
+                params=params,
+                timeout=settings.open_meteo_timeout_seconds,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            hourly = payload.get("hourly", {})
+
+            temps = hourly.get("temperature_2m", [])
+            hums = hourly.get("relative_humidity_2m", [])
+            winds = hourly.get("wind_speed_10m", [])
+
+            daily_results: list[dict[str, float]] = []
+
+            # 21 days * 24 hours = 504 hours
+            for day_idx in range(21):
+                start = day_idx * 24
+                end = start + 24
+
+                day_t = [v for v in temps[start:end] if v is not None]
+                day_h = [v for v in hums[start:end] if v is not None]
+                day_w = [v for v in winds[start:end] if v is not None]
+
+                avg_t = float(sum(day_t) / len(day_t)) if day_t else 25.0
+                avg_h = float(sum(day_h) / len(day_h)) if day_h else 55.0
+                avg_w = float(sum(day_w) / len(day_w)) if day_w else 5.0
+
+                daily_results.append(
+                    {
+                        "Temperature": round(avg_t, 2),
+                        "Humidity": round(avg_h, 2),
+                        "Wind Speed": round(avg_w, 2),
+                    }
+                )
+
+            return daily_results
+
+        except Exception as exc:
+            print(f"Open-Meteo 21-day fetch failed: {exc}, using fallback defaults")
+            # Fallback 21 days weather defaults
+            return [
+                {"Temperature": 25.0, "Humidity": 55.0, "Wind Speed": 5.0}
+                for _ in range(21)
+            ]
 
     def _format_response(self, payload: dict[str, Any]) -> dict[str, Any]:
         current = payload.get("current")

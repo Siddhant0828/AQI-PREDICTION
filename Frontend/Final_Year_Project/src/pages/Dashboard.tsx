@@ -78,13 +78,67 @@ export function Dashboard() {
   useEffect(() => {
     let isMounted = true;
 
-    const detectLocation = async () => {
-      if (!navigator.geolocation) {
+    const fetchIpLocation = async (): Promise<{ lat: number; lng: number; city?: string; region?: string } | null> => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.latitude && data.longitude) {
+            return {
+              lat: data.latitude,
+              lng: data.longitude,
+              city: data.city,
+              region: data.region,
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('ipapi.co lookup error:', e);
+      }
+
+      try {
+        const res = await fetch('http://ip-api.com/json/');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.lat && data.lon) {
+            return {
+              lat: data.lat,
+              lng: data.lon,
+              city: data.city,
+              region: data.regionName,
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('ip-api.com lookup error:', e);
+      }
+
+      return null;
+    };
+
+    const loadFallbackLocation = async () => {
+      const ipLoc = await fetchIpLocation();
+      if (ipLoc) {
+        const name = ipLoc.city || 'Your Location';
+        const displayName = ipLoc.city && ipLoc.region ? `${ipLoc.city}, ${ipLoc.region}, India` : `${ipLoc.lat.toFixed(4)}, ${ipLoc.lng.toFixed(4)}, India`;
+        const data = await fetchAirDataForCoordinates(ipLoc.lat, ipLoc.lng, name, displayName, 'city', true);
+        if (isMounted) {
+          setUserLoc(data);
+          setActiveLoc(data);
+          setGeoLoading(false);
+        }
+      } else {
         const fallback = await fetchAirDataForCoordinates(28.6139, 77.2090, 'New Delhi', 'New Delhi, Delhi NCR, India', 'city', false);
         if (isMounted) {
           setActiveLoc(fallback);
           setGeoLoading(false);
         }
+      }
+    };
+
+    const detectLocation = async () => {
+      if (!navigator.geolocation) {
+        await loadFallbackLocation();
         return;
       }
 
@@ -99,23 +153,15 @@ export function Dashboard() {
               setGeoLoading(false);
             }
           } catch (e) {
-            console.error('Error fetching GPS location data:', e);
-            const fallback = await fetchAirDataForCoordinates(28.6139, 77.2090, 'New Delhi', 'New Delhi, Delhi NCR, India', 'city', false);
-            if (isMounted) {
-              setActiveLoc(fallback);
-              setGeoLoading(false);
-            }
+            console.error('Error processing GPS location data:', e);
+            await loadFallbackLocation();
           }
         },
         async (err) => {
-          console.warn('Geolocation access denied or failed:', err);
-          const fallback = await fetchAirDataForCoordinates(28.6139, 77.2090, 'New Delhi', 'New Delhi, Delhi NCR, India', 'city', false);
-          if (isMounted) {
-            setActiveLoc(fallback);
-            setGeoLoading(false);
-          }
+          console.warn('Geolocation access denied or timed out:', err);
+          await loadFallbackLocation();
         },
-        { timeout: 10000, enableHighAccuracy: true }
+        { timeout: 7000, enableHighAccuracy: true }
       );
     };
 

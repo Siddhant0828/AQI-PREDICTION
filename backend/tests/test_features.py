@@ -1,26 +1,37 @@
 from app.services.features import FeatureService
 
 
-def test_build_model_feature_vector_orders_and_normalizes_values() -> None:
+def test_build_daily_feature_vector_orders_and_normalizes_values() -> None:
     service = FeatureService()
 
-    vector = service.build_model_feature_vector(
-        satellite_features={
-            "AOD": 0.1,
-            "NO2": None,
-            "SO2": "0.3",
-            "CO": 0.4,
-            "O3": 0.5,
-            "HCHO": 0.6,
+    vector = service.build_daily_feature_vector(
+        satellite_day={
+            "AOD": 0.4,
+            "S5P_NO2": 0.0001,
+            "S5P_SO2": 0.0002,
+            "S5P_CO": 0.03,
+            "S5P_O3": 0.12,
         },
-        weather_features={
-            "features": {
-                "temperature": 31,
-                "humidity": 45,
-                "wind_speed": None,
-                "wind_direction": 270,
-            }
+        weather_day={
+            "Temperature": 28.5,
+            "Humidity": 60.0,
+            "Wind Speed": 4.2,
         },
     )
 
-    assert vector == [0.1, 0.0, 0.3, 0.4, 0.5, 0.6, 31.0, 45.0, 0.0, 270.0]
+    assert vector == [0.4, 0.0001, 0.0002, 0.03, 0.12, 28.5, 60.0, 4.2]
+
+
+def test_build_21day_matrix_shape() -> None:
+    service = FeatureService()
+
+    sat_21 = [
+        {"AOD": 0.4, "S5P_NO2": 0.0001, "S5P_SO2": 0.0002, "S5P_CO": 0.03, "S5P_O3": 0.12}
+        for _ in range(21)
+    ]
+    wea_21 = [
+        {"Temperature": 25.0, "Humidity": 55.0, "Wind Speed": 5.0} for _ in range(21)
+    ]
+
+    matrix = service.build_21day_matrix(sat_21, wea_21)
+    assert matrix.shape == (21, 8)

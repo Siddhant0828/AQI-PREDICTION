@@ -24,12 +24,24 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     open_meteo_timeout_seconds: int = Field(default=10)
+    gee_project_id: str | None = Field(default=None)
     
-    # WAQI (CPCB) Configuration
+    # OpenAQ & WAQI (CPCB) Configuration
+    openaq_api_key: str = Field(
+        default="a15d33c429b062acffad8440c9ce6823484724a9dafcf916f345a6ed09d72abd"
+    )
     waqi_api_token: str = Field(default="")
-    cpcb_max_radius_km: float = Field(default=50.0)
+    cpcb_max_radius_km: float = Field(default=150.0)
     open_meteo_retry_count: int = 3
     open_meteo_retry_backoff_seconds: float = 1.0
+
+    # Redis Cache Configuration
+    redis_host: str = Field(default="localhost")
+    redis_port: int = Field(default=6379)
+    redis_db: int = Field(default=0)
+    redis_password: str | None = Field(default=None)
+    redis_url: str = Field(default="")
+    redis_ttl_seconds: int = Field(default=86400)
 
     model_config = SettingsConfigDict(
         env_file=".env",

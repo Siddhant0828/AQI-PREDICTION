@@ -390,21 +390,38 @@ export async function fetchAirDataForCoordinates(
     // Apply backend AI model prediction & CPCB ground station data if available
     if (predictRes && (predictRes.status === 'Success' || predictRes.status === 'completed')) {
       airData.aqi = Math.round(predictRes.aqi);
-      if (predictRes.pm25) airData.pm25 = Math.round(predictRes.pm25);
-      if (predictRes.pm10) airData.pm10 = Math.round(predictRes.pm10);
-      
+      if (predictRes.pm25 != null) airData.pm25 = Math.round(predictRes.pm25);
+      if (predictRes.pm10 != null) airData.pm10 = Math.round(predictRes.pm10);
+      if (predictRes.no2 != null) airData.no2 = Math.round(predictRes.no2);
+      if (predictRes.so2 != null) airData.so2 = Math.round(predictRes.so2);
+      if (predictRes.co != null) airData.co = +predictRes.co.toFixed(1);
+      if (predictRes.o3 != null) airData.o3 = Math.round(predictRes.o3);
+      if (predictRes.nh3 != null) airData.nh3 = Math.round(predictRes.nh3);
+
       const cat = aqiCategory(airData.aqi);
       airData.category = cat.label;
       airData.categoryColor = cat.color;
       airData.healthAdvisory = advisory(airData.aqi);
-      
+
       if (predictRes.has_cpcb_station && predictRes.cpcb_aqi) {
         airData.has_cpcb_station = true;
         airData.cpcb_station_name = predictRes.cpcb_station_name || `CPCB Monitor - ${name}`;
         airData.cpcb_aqi = Math.round(predictRes.cpcb_aqi);
+        if (predictRes.cpcb_pm25 != null) airData.pm25 = Math.round(predictRes.cpcb_pm25);
+        if (predictRes.cpcb_pm10 != null) airData.pm10 = Math.round(predictRes.cpcb_pm10);
+        if (predictRes.cpcb_no2 != null) airData.no2 = Math.round(predictRes.cpcb_no2);
+        if (predictRes.cpcb_so2 != null) airData.so2 = Math.round(predictRes.cpcb_so2);
+        if (predictRes.cpcb_co != null) airData.co = +predictRes.cpcb_co.toFixed(1);
+        if (predictRes.cpcb_o3 != null) airData.o3 = Math.round(predictRes.cpcb_o3);
+        if (predictRes.cpcb_nh3 != null) airData.nh3 = Math.round(predictRes.cpcb_nh3);
+
         const cpcbCat = aqiCategory(airData.cpcb_aqi);
         airData.cpcb_category = cpcbCat.label;
         airData.cpcb_categoryColor = cpcbCat.color;
+      } else {
+        airData.has_cpcb_station = false;
+        airData.cpcb_station_name = null;
+        airData.cpcb_aqi = null;
       }
     }
   } catch (e) {
@@ -706,9 +723,10 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
     try {
       const today = new Date().toISOString().split('T')[0];
       const res = await ApiClient.post<{ 
-        aqi: number, pm25: number, pm10: number, status: string,
+        aqi: number, pm25: number, pm10: number, no2?: number | null, so2?: number | null, co?: number | null, o3?: number | null, nh3?: number | null, status: string,
         has_cpcb_station: boolean, cpcb_station_name: string | null,
         cpcb_aqi: number | null, cpcb_pm25: number | null, cpcb_pm10: number | null,
+        cpcb_no2?: number | null, cpcb_so2?: number | null, cpcb_co?: number | null, cpcb_o3?: number | null, cpcb_nh3?: number | null,
         cpcb_distance_km: number | null
       }>('/predict', {
         latitude: r.lat,
@@ -719,18 +737,31 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
       const airData = generateAirData(r.lat, r.lng, r.name, r.displayName, r.type);
       if (res.status === 'Success' || res.status === 'completed') {
         airData.aqi = Math.round(res.aqi);
-        airData.pm25 = Math.round(res.pm25);
-        airData.pm10 = Math.round(res.pm10);
-        
+        if (res.pm25 != null) airData.pm25 = Math.round(res.pm25);
+        if (res.pm10 != null) airData.pm10 = Math.round(res.pm10);
+        if (res.no2 != null) airData.no2 = Math.round(res.no2);
+        if (res.so2 != null) airData.so2 = Math.round(res.so2);
+        if (res.co != null) airData.co = +res.co.toFixed(1);
+        if (res.o3 != null) airData.o3 = Math.round(res.o3);
+        if (res.nh3 != null) airData.nh3 = Math.round(res.nh3);
+
         const cat = aqiCategory(airData.aqi);
         airData.category = cat.label;
         airData.categoryColor = cat.color;
         airData.healthAdvisory = advisory(airData.aqi);
-        
+
         if (res.has_cpcb_station && res.cpcb_aqi) {
           airData.has_cpcb_station = true;
           airData.cpcb_station_name = res.cpcb_station_name || `CPCB Monitor - ${r.name}`;
           airData.cpcb_aqi = Math.round(res.cpcb_aqi);
+          if (res.cpcb_pm25 != null) airData.pm25 = Math.round(res.cpcb_pm25);
+          if (res.cpcb_pm10 != null) airData.pm10 = Math.round(res.cpcb_pm10);
+          if (res.cpcb_no2 != null) airData.no2 = Math.round(res.cpcb_no2);
+          if (res.cpcb_so2 != null) airData.so2 = Math.round(res.cpcb_so2);
+          if (res.cpcb_co != null) airData.co = +res.co.toFixed(1);
+          if (res.cpcb_o3 != null) airData.o3 = Math.round(res.cpcb_o3);
+          if (res.cpcb_nh3 != null) airData.nh3 = Math.round(res.cpcb_nh3);
+
           const cpcbCat = aqiCategory(airData.cpcb_aqi);
           airData.cpcb_category = cpcbCat.label;
           airData.cpcb_categoryColor = cpcbCat.color;
