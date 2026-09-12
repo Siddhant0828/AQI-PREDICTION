@@ -18,23 +18,33 @@ class ModelArtifactService:
     def __init__(
         self,
         *,
-        model_path: Path = Path("models/cnn_lstm.keras"),
+        model_path: Path | None = None,
         scaler_x_path: Path | None = None,
         scaler_y_path: Path | None = None,
     ) -> None:
-        self.model_path = model_path
-        
-        # Check for feature_scaler.pkl or fallback to scaler_x.pkl
+        # Default to enhanced CNN-BiLSTM model if present, fallback to cnn_lstm.keras
+        if model_path is not None:
+            self.model_path = model_path
+        elif Path("models/enhanced_cnn_bilstm_best.keras").exists():
+            self.model_path = Path("models/enhanced_cnn_bilstm_best.keras")
+        else:
+            self.model_path = Path("models/cnn_lstm.keras")
+
+        # Check for enhanced_feature_scaler.pkl or fallbacks
         if scaler_x_path is not None:
             self.scaler_x_path = scaler_x_path
+        elif Path("models/enhanced_feature_scaler.pkl").exists():
+            self.scaler_x_path = Path("models/enhanced_feature_scaler.pkl")
         elif Path("models/feature_scaler.pkl").exists():
             self.scaler_x_path = Path("models/feature_scaler.pkl")
         else:
             self.scaler_x_path = Path("models/scaler_x.pkl")
 
-        # Check for target_scaler.pkl or fallback to scaler_y.pkl
+        # Check for enhanced_target_scaler.pkl or fallbacks
         if scaler_y_path is not None:
             self.scaler_y_path = scaler_y_path
+        elif Path("models/enhanced_target_scaler.pkl").exists():
+            self.scaler_y_path = Path("models/enhanced_target_scaler.pkl")
         elif Path("models/target_scaler.pkl").exists():
             self.scaler_y_path = Path("models/target_scaler.pkl")
         else:
@@ -57,8 +67,6 @@ class ModelArtifactService:
             raise ModelNotAvailableException(missing_files)
 
         try:
-            import pickle
-
             from tensorflow import keras
         except ImportError as exc:
             raise HTTPException(
@@ -68,17 +76,24 @@ class ModelArtifactService:
 
         try:
             model = keras.models.load_model(self.model_path)
-            with self.scaler_x_path.open("rb") as scaler_x_file:
-                scaler_x = pickle.load(scaler_x_file)
-            with self.scaler_y_path.open("rb") as scaler_y_file:
-                scaler_y = pickle.load(scaler_y_file)
-        except OSError as exc:
+            scaler_x = self._load_scaler(self.scaler_x_path)
+            scaler_y = self._load_scaler(self.scaler_y_path)
+        except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Prediction artifacts could not be loaded: {exc}",
             ) from exc
 
         self._artifacts = ModelArtifacts(model=model, scaler_x=scaler_x, scaler_y=scaler_y)
+
+    def _load_scaler(self, path: Path) -> Any:
+        try:
+            import joblib
+            return joblib.load(path)
+        except Exception:
+            import pickle
+            with path.open("rb") as scaler_file:
+                return pickle.load(scaler_file)
 
     def missing_files(self) -> list[str]:
         paths = [self.model_path, self.scaler_x_path, self.scaler_y_path]

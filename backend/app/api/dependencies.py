@@ -63,7 +63,11 @@ def require_roles(*roles: UserRole) -> Callable[[User], Awaitable[User]]:
 
 
 def get_model_artifact_service(request: Request) -> ModelArtifactService:
-    return request.app.state.model_artifact_service
+    service = getattr(request.app.state, "model_artifact_service", None)
+    if service is None:
+        service = ModelArtifactService()
+        request.app.state.model_artifact_service = service
+    return service
 
 
 def get_prediction_service(

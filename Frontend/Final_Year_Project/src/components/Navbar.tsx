@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
+import { CpcbToggleSwitch } from '@/hooks/use-cpcb-mode';
 
 export function Navbar({ dark, onToggleDark }: { dark: boolean; onToggleDark: () => void }) {
   const { user, signOut } = useAuth();
@@ -43,6 +44,8 @@ export function Navbar({ dark, onToggleDark }: { dark: boolean; onToggleDark: ()
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          {/* CPCB Station Toggle */}
+          <CpcbToggleSwitch variant="compact" />
           <div className="relative hidden lg:block">
             <button
               onClick={() => setRegionOpen((v) => !v)}

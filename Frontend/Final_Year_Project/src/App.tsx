@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ThemeProvider, useTheme } from '@/hooks/use-theme';
+import { CpcbModeProvider } from '@/hooks/use-cpcb-mode';
 import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import { AQIExplorer } from '@/pages/AQIExplorer';
@@ -53,9 +54,11 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <ProtectedRoutes />
-          </BrowserRouter>
+          <CpcbModeProvider>
+            <BrowserRouter>
+              <ProtectedRoutes />
+            </BrowserRouter>
+          </CpcbModeProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

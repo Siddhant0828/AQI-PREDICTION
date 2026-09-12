@@ -21,27 +21,27 @@ class PredictionService:
     def __init__(self, model_artifact_service: ModelArtifactService) -> None:
         self.model_artifact_service = model_artifact_service
 
-    def predict(self, features_21x8: np.ndarray | list[list[float]]) -> PredictionResult:
+    def predict(self, features_21x10: np.ndarray | list[list[float]]) -> PredictionResult:
         """
-        Passes a (21, 8) NumPy array representing 21 days of 8 features:
-        [AOD, S5P_NO2, S5P_SO2, S5P_CO, S5P_O3, Temperature, Humidity, Wind Speed]
+        Passes a (21, 10) NumPy array representing 21 days of 10 features:
+        [AOD, S5P_NO2, S5P_SO2, S5P_CO, S5P_O3, AT, RH, WS, PM2.5, PM10]
         
-        1. Scales features with feature_scaler.pkl (scaler_x)
-        2. Reshapes to (1, 21, 8) for batch inference
-        3. Calls cnn_lstm.keras model.predict(...)
-        4. Descales output with target_scaler.pkl (scaler_y)
+        1. Scales features with enhanced_feature_scaler.pkl (scaler_x)
+        2. Reshapes to (1, 21, 10) for batch inference
+        3. Calls enhanced_cnn_bilstm_best.keras model.predict(...)
+        4. Descales output with enhanced_target_scaler.pkl (scaler_y)
         5. Computes Indian CPCB NAQI AQI for PM2.5 and PM10
         """
         try:
             artifacts = self.model_artifact_service.artifacts
-            matrix = np.asarray(features_21x8, dtype=np.float32)
-            if matrix.shape != (21, 8):
-                matrix = matrix.reshape((21, 8))
+            matrix = np.asarray(features_21x10, dtype=np.float32)
+            if matrix.shape != (21, 10):
+                matrix = matrix.reshape((21, 10))
 
-            # 1. Scale 21 rows of 8 features
+            # 1. Scale 21 rows of 10 features
             scaled_features = artifacts.scaler_x.transform(matrix)
-            # 2. Reshape to (1, 21, 8) input batch for CNN-LSTM
-            input_tensor = scaled_features.reshape(1, 21, 8)
+            # 2. Reshape to (1, 21, 10) input batch for CNN-BiLSTM
+            input_tensor = scaled_features.reshape(1, 21, 10)
             # 3. Model predict -> (1, 2)
             raw_prediction = artifacts.model.predict(input_tensor, verbose=0)
             prediction_array = np.asarray(raw_prediction).reshape(1, -1)
@@ -122,14 +122,14 @@ class PredictionWorkflowService:
 
     async def predict(self, payload: PredictionRequest) -> PredictionResponse:
         cache_key = (
-            f"aqi:seq:{payload.latitude:.4f}:{payload.longitude:.4f}:{payload.date.isoformat()}"
+            f"aqi:seq:v2:{payload.latitude:.4f}:{payload.longitude:.4f}:{payload.date.isoformat()}"
         )
 
         # 1. Check Redis cache first
         cached_matrix = await self.cache_service.get_cached_sequence(cache_key)
 
-        if cached_matrix is not None and len(cached_matrix) == 21:
-            matrix_21x8 = np.array(cached_matrix, dtype=np.float32)
+        if cached_matrix is not None and len(cached_matrix) == 21 and len(cached_matrix[0]) == 10:
+            matrix_21x10 = np.array(cached_matrix, dtype=np.float32)
             cpcb_data = await self.cpcb_service.get_real_time_aqi(
                 payload.latitude, payload.longitude
             )
@@ -147,20 +147,20 @@ class PredictionWorkflowService:
                 ),
             )
 
-            # 3. Build (21, 8) NumPy matrix
-            matrix_21x8 = self.feature_service.build_21day_matrix(sat_21days, wea_21days)
+            # 3. Build (21, 10) NumPy matrix
+            matrix_21x10 = self.feature_service.build_21day_matrix(sat_21days, wea_21days)
 
             # 4. Cache sequence in Redis for fast access
-            await self.cache_service.set_cached_sequence(cache_key, matrix_21x8.tolist())
+            await self.cache_service.set_cached_sequence(cache_key, matrix_21x10.tolist())
 
         # 5. Execute model prediction
-        prediction = self.prediction_service.predict(matrix_21x8)
+        prediction = self.prediction_service.predict(matrix_21x10)
 
         # 6. Save history asynchronously
         try:
             await self._save_prediction_history(
                 payload=payload,
-                matrix_21x8=matrix_21x8,
+                matrix_21x10=matrix_21x10,
                 prediction=prediction,
             )
         except Exception as exc:
@@ -193,7 +193,7 @@ class PredictionWorkflowService:
         self,
         *,
         payload: PredictionRequest,
-        matrix_21x8: np.ndarray,
+        matrix_21x10: np.ndarray,
         prediction: PredictionResult,
     ) -> Any:
         return await self.prediction_history_repository.create(
@@ -206,7 +206,7 @@ class PredictionWorkflowService:
                 ),
                 input_payload={
                     "request": payload.model_dump(mode="json"),
-                    "matrix_shape": list(matrix_21x8.shape),
+                    "matrix_shape": list(matrix_21x10.shape),
                 },
                 output_payload=prediction.model_dump(),
                 status=(

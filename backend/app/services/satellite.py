@@ -57,11 +57,13 @@ class SatelliteService:
                 if isinstance(res, dict) and res.get("AOD") is not None:
                     daily_features.append(
                         {
-                            "AOD": float(res.get("AOD") or 0.45),
-                            "S5P_NO2": float(res.get("NO2") or 0.00012),
-                            "S5P_SO2": float(res.get("SO2") or 0.00025),
-                            "S5P_CO": float(res.get("CO") or 0.035),
-                            "S5P_O3": float(res.get("O3") or 0.13),
+                            "AOD": float(res.get("AOD") or 0.615),
+                            "S5P_NO2": float(res.get("NO2") or 6.07e-05),
+                            "S5P_SO2": float(res.get("SO2") or 1.42e-04),
+                            "S5P_CO": float(res.get("CO") or 0.0381),
+                            "S5P_O3": float(res.get("O3") or 0.1096),
+                            "PM2.5": float(res.get("PM2.5") or 51.51),
+                            "PM10": float(res.get("PM10") or 111.09),
                         }
                     )
             if len(daily_features) == 21:
@@ -77,11 +79,13 @@ class SatelliteService:
         # 3. Baseline sample values fallback
         return [
             {
-                "AOD": 0.45,
-                "S5P_NO2": 0.00012,
-                "S5P_SO2": 0.00025,
-                "S5P_CO": 0.035,
-                "S5P_O3": 0.13,
+                "AOD": 0.615,
+                "S5P_NO2": 6.07e-05,
+                "S5P_SO2": 1.42e-04,
+                "S5P_CO": 0.0381,
+                "S5P_O3": 0.1096,
+                "PM2.5": 51.51,
+                "PM10": 111.09,
             }
             for _ in range(21)
         ]
@@ -99,7 +103,7 @@ class SatelliteService:
         params = {
             "latitude": latitude,
             "longitude": longitude,
-            "hourly": "nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone,aerosol_optical_depth",
+            "hourly": "pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone,aerosol_optical_depth",
             "past_days": 21,
         }
         try:
@@ -115,6 +119,8 @@ class SatelliteService:
             so2 = hourly.get("sulphur_dioxide", [])
             co = hourly.get("carbon_monoxide", [])
             o3 = hourly.get("ozone", [])
+            pm2_5 = hourly.get("pm2_5", [])
+            pm10 = hourly.get("pm10", [])
 
             if not times or len(times) < 21 * 24:
                 return None
@@ -131,14 +137,16 @@ class SatelliteService:
                         return default
                     return (sum(sub) / len(sub)) * scale
 
-                # Scale gas units to satellite column densities
+                # Scale gas units to satellite column densities and include historical PM2.5/PM10
                 result_days.append(
                     {
-                        "AOD": round(avg_val(aod, 0.45), 4),
-                        "S5P_NO2": round(avg_val(no2, 0.00012, scale=1e-5), 6),
-                        "S5P_SO2": round(avg_val(so2, 0.00025, scale=1e-5), 6),
-                        "S5P_CO": round(avg_val(co, 0.035, scale=1e-4), 6),
-                        "S5P_O3": round(avg_val(o3, 0.13, scale=1e-3), 6),
+                        "AOD": round(avg_val(aod, 0.615), 4),
+                        "S5P_NO2": round(avg_val(no2, 6.07e-05, scale=1e-5), 6),
+                        "S5P_SO2": round(avg_val(so2, 1.42e-04, scale=1e-5), 6),
+                        "S5P_CO": round(avg_val(co, 0.0381, scale=1e-4), 6),
+                        "S5P_O3": round(avg_val(o3, 0.1096, scale=1e-3), 6),
+                        "PM2.5": round(avg_val(pm2_5, 51.51), 2),
+                        "PM10": round(avg_val(pm10, 111.09), 2),
                     }
                 )
 

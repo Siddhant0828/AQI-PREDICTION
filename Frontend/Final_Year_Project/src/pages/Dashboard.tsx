@@ -22,7 +22,8 @@ import {
     TrendingUp,
     Wind
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, useMemo } from 'react';
+import { useCpcbMode, CpcbToggleSwitch } from '@/hooks/use-cpcb-mode';
 import CountUpRaw from 'react-countup';
 import {
     Area,
@@ -67,6 +68,7 @@ const HOTSPOT_CITIES_DEF = [
 ];
 
 export function Dashboard() {
+  const { showCpcb } = useCpcbMode();
   const [mapTab, setMapTab] = useState<MapTab>('AQI Heatmap');
   const [trendPeriod, setTrendPeriod] = useState<'7days' | '24days' | '1year'>('7days');
 
@@ -74,6 +76,15 @@ export function Dashboard() {
   const [userLoc, setUserLoc] = useState<LocationAirData | null>(null);
   const [geoLoading, setGeoLoading] = useState<boolean>(true);
   const [hotspotCities, setHotspotCities] = useState<HotspotCity[]>([]);
+
+  const sortedHotspotCities = useMemo(() => {
+    const list = [...hotspotCities];
+    return list.sort((a, b) => {
+      const aVal = showCpcb && a.cpcb_aqi != null ? a.cpcb_aqi : a.aqi;
+      const bVal = showCpcb && b.cpcb_aqi != null ? b.cpcb_aqi : b.aqi;
+      return bVal - aVal;
+    });
+  }, [hotspotCities, showCpcb]);
 
   useEffect(() => {
     let isMounted = true;
@@ -211,6 +222,15 @@ export function Dashboard() {
     };
   }, []);
 
+  const handleSelectHotspot = async (c: { city: string; state: string; lat: number; lng: number }) => {
+    try {
+      const data = await fetchAirDataForCoordinates(c.lat, c.lng, c.city, `${c.city}, ${c.state}, India`, 'city', false);
+      setActiveLoc(data);
+    } catch (e) {
+      console.error('Error selecting hotspot city:', e);
+    }
+  };
+
   const trendData = (dashData as any).trendMulti[trendPeriod] as Array<{ date: string; aqi: number; pm25: number; no2: number }>;
   const weather = (dashData as any).weather;
   const pm25 = (dashData as any).pm25;
@@ -285,10 +305,10 @@ export function Dashboard() {
                 )}
               </div>
 
-              {/* Side-by-side AQI Badges */}
+              {/* Side-by-side AQI Badges & CPCB Toggle */}
               <div className="flex flex-wrap items-center gap-4">
-                {/* Official CPCB Badge */}
-                {activeLoc.has_cpcb_station && activeLoc.cpcb_aqi != null && (
+                {/* Official CPCB Badge — Only displayed when toggle is enabled */}
+                {showCpcb && activeLoc.has_cpcb_station && activeLoc.cpcb_aqi != null && (
                   <div
                     className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
                     style={{ backgroundColor: activeLoc.cpcb_categoryColor || activeLoc.categoryColor }}
@@ -306,7 +326,7 @@ export function Dashboard() {
                   </div>
                 )}
 
-                {/* AI Model Predicted Badge */}
+                {/* AI Model Predicted Badge — ALWAYS displayed at all times */}
                 <div
                   className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
                   style={{ backgroundColor: activeLoc.categoryColor }}
@@ -319,9 +339,12 @@ export function Dashboard() {
                   </div>
                   <div className="border-l border-white/20 pl-3">
                     <div className="text-xs font-700">{activeLoc.category} (Predicted)</div>
-                    <div className="text-[9px] opacity-80">Satellite + Weather CNN-LSTM</div>
+                    <div className="text-[9px] opacity-80">Enhanced CNN-BiLSTM Attention</div>
                   </div>
                 </div>
+
+                {/* Dedicated CPCB toggle switch */}
+                <CpcbToggleSwitch variant="default" />
               </div>
 
               <div className="text-[11px] text-muted-foreground">
@@ -337,7 +360,7 @@ export function Dashboard() {
               </div>
               <div className="flex overflow-hidden rounded-xl">
                 {aqiScale.map((s) => {
-                  const active = s.label === activeLoc.category || s.label === activeLoc.cpcb_category;
+                  const active = s.label === (showCpcb && activeLoc.cpcb_category ? activeLoc.cpcb_category : activeLoc.category);
                   return (
                     <div
                       key={s.label}
@@ -370,15 +393,15 @@ export function Dashboard() {
       </motion.div>
 
       {/* Location Search with Map */}
-      <LocationSearch />
+      <LocationSearch onSelectLocation={setActiveLoc} initialLocation={activeLoc} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <KpiCard
-          label="Current Location AQI"
-          value={activeLoc ? (activeLoc.cpcb_aqi || activeLoc.aqi) : dashData.kpis[0].value}
-          category={activeLoc ? activeLoc.category : dashData.kpis[0].category}
-          categoryColor={activeLoc ? activeLoc.categoryColor : dashData.kpis[0].categoryColor}
+          label={showCpcb && activeLoc?.cpcb_aqi != null ? "CPCB Station AQI" : "Current Location AQI (AI Model)"}
+          value={activeLoc ? (showCpcb && activeLoc.cpcb_aqi != null ? activeLoc.cpcb_aqi : activeLoc.aqi) : dashData.kpis[0].value}
+          category={activeLoc ? (showCpcb && activeLoc.cpcb_category ? activeLoc.cpcb_category : activeLoc.category) : dashData.kpis[0].category}
+          categoryColor={activeLoc ? (showCpcb && activeLoc.cpcb_categoryColor ? activeLoc.cpcb_categoryColor : activeLoc.categoryColor) : dashData.kpis[0].categoryColor}
           trend={dashData.kpis[0].trend}
           trendDirection="up"
           icon={Wind}
@@ -445,13 +468,16 @@ export function Dashboard() {
           <Suspense fallback={<div className="flex h-[380px] items-center justify-center text-xs text-muted-foreground">Loading interactive map…</div>}>
             <IndiaMap
               hotspots={dashData.hotspots as any}
-              cities={hotspotCities.map((c) => ({
+              cities={sortedHotspotCities.map((c) => ({
                 city: c.city,
                 state: c.state,
                 lat: c.lat,
                 lng: c.lng,
-                aqi: c.cpcb_aqi || c.aqi,
+                aqi: c.aqi,
+                cpcb_aqi: c.cpcb_aqi,
               }))}
+              showCpcb={showCpcb}
+              onSelectCity={handleSelectHotspot}
               showHeatmap={mapTab === 'AQI Heatmap'}
               showFires={mapTab === 'Fire Points'}
               height="380px"
@@ -471,15 +497,23 @@ export function Dashboard() {
           <SectionCard
             title="Top 5 Pollution Hotspots Today"
             delay={0.25}
-            action={<button className="text-[11px] font-600 text-primary hover:underline">View All</button>}
+            action={
+              <div className="flex items-center gap-2">
+                <CpcbToggleSwitch variant="compact" />
+                <button className="text-[11px] font-600 text-primary hover:underline">View All</button>
+              </div>
+            }
           >
             <div className="space-y-1">
-              <div className="mb-2 grid grid-cols-[1fr_75px_75px] text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+              <div className={cn(
+                "mb-2 grid text-[10px] font-700 uppercase tracking-wide text-muted-foreground",
+                showCpcb ? "grid-cols-[1fr_75px_75px]" : "grid-cols-[1fr_90px]"
+              )}>
                 <span>Region</span>
-                <span className="text-center">CPCB AQI</span>
-                <span className="text-center">Model AQI</span>
+                {showCpcb && <span className="text-center">CPCB AQI</span>}
+                <span className="text-center">{showCpcb ? "Model AQI" : "Predicted AQI"}</span>
               </div>
-              {(hotspotCities.length > 0 ? hotspotCities : dashData.topCities).slice(0, 5).map((c: any, i: number) => {
+              {(sortedHotspotCities.length > 0 ? sortedHotspotCities : dashData.topCities).slice(0, 5).map((c: any, i: number) => {
                 const cpcbCat = c.cpcb_aqi ? aqiCategory(c.cpcb_aqi) : null;
                 const modelCat = aqiCategory(c.aqi);
                 return (
@@ -488,7 +522,12 @@ export function Dashboard() {
                     initial={{ opacity: 0, x: 12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + i * 0.05 }}
-                    className="grid grid-cols-[1fr_75px_75px] items-center rounded-xl px-2 py-2.5 hover:bg-muted/40 transition-colors"
+                    onClick={() => handleSelectHotspot(c)}
+                    className={cn(
+                      "grid items-center rounded-xl px-2 py-2.5 hover:bg-muted/60 cursor-pointer transition-all active:scale-[0.99]",
+                      showCpcb ? "grid-cols-[1fr_75px_75px]" : "grid-cols-[1fr_90px]"
+                    )}
+                    title={`Click to view live parameters and predicted AQI for ${c.city}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -497,15 +536,17 @@ export function Dashboard() {
                         <div className="text-[10px] text-muted-foreground truncate">{c.state}</div>
                       </div>
                     </div>
-                    <div className="text-center">
-                      {c.cpcb_aqi ? (
-                        <span className="rounded-lg px-2 py-0.5 text-xs font-700 inline-block" style={{ backgroundColor: `${cpcbCat?.color}20`, color: cpcbCat?.color }}>
-                          {c.cpcb_aqi}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground font-500">—</span>
-                      )}
-                    </div>
+                    {showCpcb && (
+                      <div className="text-center">
+                        {c.cpcb_aqi ? (
+                          <span className="rounded-lg px-2 py-0.5 text-xs font-700 inline-block" style={{ backgroundColor: `${cpcbCat?.color}20`, color: cpcbCat?.color }}>
+                            {c.cpcb_aqi}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-500">—</span>
+                        )}
+                      </div>
+                    )}
                     <div className="text-center">
                       <span className="rounded-lg px-2 py-0.5 text-xs font-700 inline-block" style={{ backgroundColor: `${modelCat.color}20`, color: modelCat.color }}>
                         {c.aqi}

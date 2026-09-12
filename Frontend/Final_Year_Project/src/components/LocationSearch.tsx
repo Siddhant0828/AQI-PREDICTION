@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { useCpcbMode, CpcbToggleSwitch } from '@/hooks/use-cpcb-mode';
 
 // Fix Leaflet default icon issue
 const defaultIcon = L.icon({
@@ -81,6 +82,14 @@ export interface LocationAirData {
   cpcb_aqi?: number | null;
   cpcb_category?: string;
   cpcb_categoryColor?: string;
+  cpcb_pm25?: number | null;
+  cpcb_pm10?: number | null;
+  cpcb_no2?: number | null;
+  cpcb_so2?: number | null;
+  cpcb_co?: number | null;
+  cpcb_o3?: number | null;
+  cpcb_nh3?: number | null;
+  cpcb_distance_km?: number | null;
   isUserLocation?: boolean;
 
   trend24h?: Array<{ time: string; pm25: number }>;
@@ -197,7 +206,7 @@ async function fetchOpenMeteoData(lat: number, lng: number) {
   try {
     const [weatherRes, airRes, hourlyRes] = await Promise.all([
       fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,apparent_temperature`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,apparent_temperature,visibility`
       ),
       fetch(
         `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone,ammonia`
@@ -277,9 +286,12 @@ export async function fetchAirDataForCoordinates(
     const [openMeteo, predictRes] = await Promise.all([
       fetchOpenMeteoData(lat, lng),
       ApiClient.post<{ 
-        aqi: number, pm25: number, pm10: number, status: string,
+        aqi: number, pm25: number, pm10: number,
+        no2?: number | null, so2?: number | null, co?: number | null, o3?: number | null, nh3?: number | null,
+        status: string,
         has_cpcb_station: boolean, cpcb_station_name: string | null,
         cpcb_aqi: number | null, cpcb_pm25: number | null, cpcb_pm10: number | null,
+        cpcb_no2?: number | null, cpcb_so2?: number | null, cpcb_co?: number | null, cpcb_o3?: number | null, cpcb_nh3?: number | null,
         cpcb_distance_km: number | null
       }>('/predict', {
         latitude: lat,
@@ -296,6 +308,7 @@ export async function fetchAirDataForCoordinates(
     if (weatherData.wind_speed_10m != null) airData.windSpeed = Math.round(weatherData.wind_speed_10m);
     if (weatherData.wind_direction_10m != null) airData.windDirection = degreesToCompass(weatherData.wind_direction_10m);
     if (weatherData.apparent_temperature != null) airData.feelsLike = Math.round(weatherData.apparent_temperature);
+    if (weatherData.visibility != null) airData.visibility = +(weatherData.visibility / 1000).toFixed(1);
 
     // Apply real live Open-Meteo air quality pollutant concentrations if available
     if (openMeteoAir.pm2_5 != null) airData.pm25 = Math.round(openMeteoAir.pm2_5);
@@ -407,13 +420,14 @@ export async function fetchAirDataForCoordinates(
         airData.has_cpcb_station = true;
         airData.cpcb_station_name = predictRes.cpcb_station_name || `CPCB Monitor - ${name}`;
         airData.cpcb_aqi = Math.round(predictRes.cpcb_aqi);
-        if (predictRes.cpcb_pm25 != null) airData.pm25 = Math.round(predictRes.cpcb_pm25);
-        if (predictRes.cpcb_pm10 != null) airData.pm10 = Math.round(predictRes.cpcb_pm10);
-        if (predictRes.cpcb_no2 != null) airData.no2 = Math.round(predictRes.cpcb_no2);
-        if (predictRes.cpcb_so2 != null) airData.so2 = Math.round(predictRes.cpcb_so2);
-        if (predictRes.cpcb_co != null) airData.co = +predictRes.cpcb_co.toFixed(1);
-        if (predictRes.cpcb_o3 != null) airData.o3 = Math.round(predictRes.cpcb_o3);
-        if (predictRes.cpcb_nh3 != null) airData.nh3 = Math.round(predictRes.cpcb_nh3);
+        if (predictRes.cpcb_pm25 != null) airData.cpcb_pm25 = Math.round(predictRes.cpcb_pm25);
+        if (predictRes.cpcb_pm10 != null) airData.cpcb_pm10 = Math.round(predictRes.cpcb_pm10);
+        if (predictRes.cpcb_no2 != null) airData.cpcb_no2 = Math.round(predictRes.cpcb_no2);
+        if (predictRes.cpcb_so2 != null) airData.cpcb_so2 = Math.round(predictRes.cpcb_so2);
+        if (predictRes.cpcb_co != null) airData.cpcb_co = +predictRes.cpcb_co.toFixed(1);
+        if (predictRes.cpcb_o3 != null) airData.cpcb_o3 = Math.round(predictRes.cpcb_o3);
+        if (predictRes.cpcb_nh3 != null) airData.cpcb_nh3 = Math.round(predictRes.cpcb_nh3);
+        if (predictRes.cpcb_distance_km != null) airData.cpcb_distance_km = predictRes.cpcb_distance_km;
 
         const cpcbCat = aqiCategory(airData.cpcb_aqi);
         airData.cpcb_category = cpcbCat.label;
@@ -567,6 +581,7 @@ export interface LocationSearchProps {
 }
 
 export function LocationSearch({ onSelectLocation, initialLocation }: LocationSearchProps) {
+  const { showCpcb } = useCpcbMode();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -720,58 +735,22 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
   async function handleSelectResult(r: SearchResult) {
     setQuery(r.name);
     setFocused(false);
+    setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await ApiClient.post<{ 
-        aqi: number, pm25: number, pm10: number, no2?: number | null, so2?: number | null, co?: number | null, o3?: number | null, nh3?: number | null, status: string,
-        has_cpcb_station: boolean, cpcb_station_name: string | null,
-        cpcb_aqi: number | null, cpcb_pm25: number | null, cpcb_pm10: number | null,
-        cpcb_no2?: number | null, cpcb_so2?: number | null, cpcb_co?: number | null, cpcb_o3?: number | null, cpcb_nh3?: number | null,
-        cpcb_distance_km: number | null
-      }>('/predict', {
-        latitude: r.lat,
-        longitude: r.lng,
-        date: today
-      });
-      
-      const airData = generateAirData(r.lat, r.lng, r.name, r.displayName, r.type);
-      if (res.status === 'Success' || res.status === 'completed') {
-        airData.aqi = Math.round(res.aqi);
-        if (res.pm25 != null) airData.pm25 = Math.round(res.pm25);
-        if (res.pm10 != null) airData.pm10 = Math.round(res.pm10);
-        if (res.no2 != null) airData.no2 = Math.round(res.no2);
-        if (res.so2 != null) airData.so2 = Math.round(res.so2);
-        if (res.co != null) airData.co = +res.co.toFixed(1);
-        if (res.o3 != null) airData.o3 = Math.round(res.o3);
-        if (res.nh3 != null) airData.nh3 = Math.round(res.nh3);
-
-        const cat = aqiCategory(airData.aqi);
-        airData.category = cat.label;
-        airData.categoryColor = cat.color;
-        airData.healthAdvisory = advisory(airData.aqi);
-
-        if (res.has_cpcb_station && res.cpcb_aqi) {
-          airData.has_cpcb_station = true;
-          airData.cpcb_station_name = res.cpcb_station_name || `CPCB Monitor - ${r.name}`;
-          airData.cpcb_aqi = Math.round(res.cpcb_aqi);
-          if (res.cpcb_pm25 != null) airData.pm25 = Math.round(res.cpcb_pm25);
-          if (res.cpcb_pm10 != null) airData.pm10 = Math.round(res.cpcb_pm10);
-          if (res.cpcb_no2 != null) airData.no2 = Math.round(res.cpcb_no2);
-          if (res.cpcb_so2 != null) airData.so2 = Math.round(res.cpcb_so2);
-          if (res.cpcb_co != null) airData.co = +res.co.toFixed(1);
-          if (res.cpcb_o3 != null) airData.o3 = Math.round(res.cpcb_o3);
-          if (res.cpcb_nh3 != null) airData.nh3 = Math.round(res.cpcb_nh3);
-
-          const cpcbCat = aqiCategory(airData.cpcb_aqi);
-          airData.cpcb_category = cpcbCat.label;
-          airData.cpcb_categoryColor = cpcbCat.color;
-        }
+      const airData = await fetchAirDataForCoordinates(r.lat, r.lng, r.name, r.displayName, r.type, false);
+      setSelected(airData);
+      if (onSelectLocation) {
+        onSelectLocation(airData);
       }
-      setSelected(airData);
     } catch (e) {
-      console.error('Prediction failed, falling back to mock:', e);
-      const airData = generateAirData(r.lat, r.lng, r.name, r.displayName, r.type);
-      setSelected(airData);
+      console.error('Error fetching air data for selected location:', e);
+      const fallback = generateAirData(r.lat, r.lng, r.name, r.displayName, r.type);
+      setSelected(fallback);
+      if (onSelectLocation) {
+        onSelectLocation(fallback);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -826,6 +805,7 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
           )}
           <span className="hidden sm:inline">{geoLocating ? 'Locating...' : 'Use My Location'}</span>
         </button>
+        <CpcbToggleSwitch variant="compact" />
       </div>
 
       {/* Search Results Dropdown */}
@@ -931,12 +911,17 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
                         fontWeight: 700,
                         fontSize: '14px',
                       }}>
-                        AQI {selected.aqi}
+                        Model AQI {selected.aqi}
                       </span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: selected.categoryColor }}>
                         {selected.category}
                       </span>
                     </div>
+                    {showCpcb && selected.has_cpcb_station && selected.cpcb_aqi != null && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 600, color: selected.cpcb_categoryColor || '#10B981' }}>
+                        CPCB Station: AQI {selected.cpcb_aqi} ({selected.cpcb_category})
+                      </div>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -966,7 +951,7 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  {selected.has_cpcb_station && selected.cpcb_aqi != null && (
+                  {showCpcb && selected.has_cpcb_station && selected.cpcb_aqi != null && (
                     <div
                       className="grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm border border-black/10"
                       style={{ backgroundColor: selected.cpcb_categoryColor }}
@@ -981,7 +966,7 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
                   <div
                     className="grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm border border-black/10"
                     style={{ backgroundColor: selected.categoryColor }}
-                    title="AI Predicted AQI"
+                    title="AI Model Predicted AQI (Always active)"
                   >
                     <div className="text-center">
                       <div className="text-lg font-700 leading-none">{selected.aqi}</div>
@@ -996,7 +981,7 @@ export function LocationSearch({ onSelectLocation, initialLocation }: LocationSe
                   <span className="font-700" style={{ color: selected.categoryColor }}>{selected.category} (Predicted)</span>
                   <span className="text-muted-foreground">· {selected.dominantPollutant} · {selected.primarySource}</span>
                 </div>
-                {selected.has_cpcb_station && selected.cpcb_category && (
+                {showCpcb && selected.has_cpcb_station && selected.cpcb_category && (
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: selected.cpcb_categoryColor }} />
                     <span className="font-700" style={{ color: selected.cpcb_categoryColor }}>{selected.cpcb_category} (Official CPCB)</span>

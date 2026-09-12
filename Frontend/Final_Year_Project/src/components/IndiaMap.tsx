@@ -7,9 +7,11 @@ import { aqiCategory } from './AqiBadge';
 
 interface IndiaMapProps {
   hotspots?: Hotspot[];
-  cities?: { city: string; state: string; lat: number; lng: number; aqi: number }[];
+  cities?: { city: string; state: string; lat: number; lng: number; aqi: number; cpcb_aqi?: number | null }[];
   showFires?: boolean;
   showHeatmap?: boolean;
+  showCpcb?: boolean;
+  onSelectCity?: (city: { city: string; state: string; lat: number; lng: number }) => void;
   opacity?: number;
   height?: string;
   center?: [number, number];
@@ -46,6 +48,8 @@ export function IndiaMap({
   cities = [],
   showFires = true,
   showHeatmap = true,
+  showCpcb = false,
+  onSelectCity,
   opacity = 0.7,
   height = '520px',
   center = [22.5, 80],
@@ -54,12 +58,16 @@ export function IndiaMap({
 }: IndiaMapProps) {
   const cityMarkers = useMemo(
     () =>
-      cities.map((c) => ({
-        ...c,
-        lat: c.lat ?? cityCoords[c.city]?.[0],
-        lng: c.lng ?? cityCoords[c.city]?.[1],
-      })),
-    [cities]
+      cities.map((c) => {
+        const displayAqi = showCpcb && c.cpcb_aqi != null ? c.cpcb_aqi : c.aqi;
+        return {
+          ...c,
+          displayAqi,
+          lat: c.lat ?? cityCoords[c.city]?.[0],
+          lng: c.lng ?? cityCoords[c.city]?.[1],
+        };
+      }),
+    [cities, showCpcb]
   );
 
   return (
@@ -99,7 +107,7 @@ export function IndiaMap({
           })}
 
         {cityMarkers.map((c) => {
-          const cat = aqiCategory(c.aqi);
+          const cat = aqiCategory(c.displayAqi);
           return (
             <CircleMarker
               key={c.city}
@@ -108,15 +116,40 @@ export function IndiaMap({
               pathOptions={{ color: cat.color, fillColor: cat.color, fillOpacity: 0.85, weight: 2 }}
             >
               <Popup>
-                <div className="space-y-0.5">
+                <div className="space-y-1 text-xs">
                   <div className="font-bold text-sm">{c.city}</div>
-                  <div className="text-xs text-gray-500">{c.state}</div>
-                  <div className="text-base font-bold" style={{ color: cat.color }}>AQI {c.aqi}</div>
-                  <div className="text-xs">{cat.label}</div>
+                  <div className="text-[10px] text-gray-500">{c.state}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold px-1.5 py-0.5 rounded text-white text-[11px]" style={{ backgroundColor: cat.color }}>
+                      {c.displayAqi}
+                    </span>
+                    <span className="font-semibold" style={{ color: cat.color }}>{cat.label}</span>
+                  </div>
+                  <div className="pt-1 border-t border-gray-200 dark:border-gray-700 text-[10px] space-y-0.5">
+                    <div className="text-gray-600 dark:text-gray-300">
+                      Model Predicted: <strong className="text-foreground">{c.aqi}</strong>
+                    </div>
+                    {showCpcb && c.cpcb_aqi != null && (
+                      <div className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        CPCB Station: {c.cpcb_aqi}
+                      </div>
+                    )}
+                    {onSelectCity && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectCity({ city: c.city, state: c.state, lat: c.lat, lng: c.lng })}
+                        className="mt-2 w-full rounded-lg bg-primary/10 py-1 text-[10px] font-700 text-primary hover:bg-primary/20 transition text-center"
+                      >
+                        Select & Load Live Parameters
+                      </button>
+                    )}
+                  </div>
                 </div>
               </Popup>
               <Tooltip direction="top">
-                <div className="text-xs font-bold">{c.city}: AQI {c.aqi}</div>
+                <div className="text-xs font-bold">
+                  {c.city}: {showCpcb && c.cpcb_aqi != null ? `CPCB ${c.cpcb_aqi} (Model ${c.aqi})` : `AQI ${c.aqi}`}
+                </div>
               </Tooltip>
             </CircleMarker>
           );
