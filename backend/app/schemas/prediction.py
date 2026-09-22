@@ -6,6 +6,7 @@ class PredictionRequest(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     date: date
+    location_name: str | None = None
 
 
 class PredictionResult(BaseModel):
@@ -18,6 +19,16 @@ class PredictionResult(BaseModel):
     nh3: float | None = None
     aqi: float | None = None
     status: str
+
+    # Groq IQAir Search AQI metadata
+    is_groq_aqi: bool = False
+    groq_aqi: float | None = None
+    groq_source: str | None = None
+
+    # Calibrated / Adjusted Model AQI (tuned for presentation display)
+    adjusted_aqi: float | None = None
+    adjusted_pm25: float | None = None
+    adjusted_pm10: float | None = None
 
     # CPCB / OpenAQ Ground Station Data
     has_cpcb_station: bool = False

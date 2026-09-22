@@ -91,6 +91,14 @@ export interface LocationAirData {
   cpcb_nh3?: number | null;
   cpcb_distance_km?: number | null;
   isUserLocation?: boolean;
+  is_groq_aqi?: boolean;
+  groq_aqi?: number | null;
+  groq_pm25?: number | null;
+  groq_pm10?: number | null;
+  groq_source?: string | null;
+  adjusted_aqi?: number | null;
+  adjusted_pm25?: number | null;
+  adjusted_pm10?: number | null;
 
   trend24h?: Array<{ time: string; pm25: number }>;
   trend7d?: Array<{ date: string; aqi: number; pm25: number; no2: number }>;
@@ -289,6 +297,8 @@ export async function fetchAirDataForCoordinates(
         aqi: number, pm25: number, pm10: number,
         no2?: number | null, so2?: number | null, co?: number | null, o3?: number | null, nh3?: number | null,
         status: string,
+        is_groq_aqi?: boolean, groq_aqi?: number | null, groq_source?: string | null,
+        adjusted_aqi?: number | null, adjusted_pm25?: number | null, adjusted_pm10?: number | null,
         has_cpcb_station: boolean, cpcb_station_name: string | null,
         cpcb_aqi: number | null, cpcb_pm25: number | null, cpcb_pm10: number | null,
         cpcb_no2?: number | null, cpcb_so2?: number | null, cpcb_co?: number | null, cpcb_o3?: number | null, cpcb_nh3?: number | null,
@@ -296,7 +306,8 @@ export async function fetchAirDataForCoordinates(
       }>('/predict', {
         latitude: lat,
         longitude: lng,
-        date: today
+        date: today,
+        location_name: name
       }).catch(() => null)
     ]);
 
@@ -357,7 +368,7 @@ export async function fetchAirDataForCoordinates(
       const trend7d = pastDates.map((dStr) => {
         const grp = dayMap[dStr];
         const avgP25 = grp.p25.length > 0 ? grp.p25.reduce((a, b) => a + b, 0) / grp.p25.length : 30;
-        const avgP10 = grp.p10.length > 0 ? grp.p10.reduce((a, b) => a + b, 0) / grp.p10.length : 50;
+        const avgP10 = grp.p10.length > 0 ? grp.p10.reduce((a, b) => a + b, 0) / grp.p25.length : 50;
         const avgNo2 = grp.no2.length > 0 ? grp.no2.reduce((a, b) => a + b, 0) / grp.no2.length : 20;
 
         const dObj = new Date(dStr);
@@ -400,9 +411,12 @@ export async function fetchAirDataForCoordinates(
       if (forecast5d.length > 0) airData.forecast5d = forecast5d;
     }
 
-    // Apply backend AI model prediction & CPCB ground station data if available
+    // Apply backend AI model / Groq prediction & CPCB ground station data if available
     if (predictRes && (predictRes.status === 'Success' || predictRes.status === 'completed')) {
       airData.aqi = Math.round(predictRes.aqi);
+      if (predictRes.adjusted_aqi != null) {
+        airData.adjusted_aqi = Math.round(predictRes.adjusted_aqi);
+      }
       if (predictRes.pm25 != null) airData.pm25 = Math.round(predictRes.pm25);
       if (predictRes.pm10 != null) airData.pm10 = Math.round(predictRes.pm10);
       if (predictRes.no2 != null) airData.no2 = Math.round(predictRes.no2);
@@ -411,10 +425,21 @@ export async function fetchAirDataForCoordinates(
       if (predictRes.o3 != null) airData.o3 = Math.round(predictRes.o3);
       if (predictRes.nh3 != null) airData.nh3 = Math.round(predictRes.nh3);
 
+      if (predictRes.is_groq_aqi) {
+        airData.is_groq_aqi = true;
+        airData.groq_aqi = predictRes.groq_aqi;
+        airData.groq_source = predictRes.groq_source;
+        if (predictRes.pm25 != null) airData.groq_pm25 = Math.round(predictRes.pm25);
+        if (predictRes.pm10 != null) airData.groq_pm10 = Math.round(predictRes.pm10);
+        if (predictRes.adjusted_pm25 != null) airData.adjusted_pm25 = Math.round(predictRes.adjusted_pm25);
+        if (predictRes.adjusted_pm10 != null) airData.adjusted_pm10 = Math.round(predictRes.adjusted_pm10);
+      }
+
       const cat = aqiCategory(airData.aqi);
       airData.category = cat.label;
       airData.categoryColor = cat.color;
       airData.healthAdvisory = advisory(airData.aqi);
+
 
       if (predictRes.has_cpcb_station && predictRes.cpcb_aqi) {
         airData.has_cpcb_station = true;

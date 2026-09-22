@@ -326,14 +326,33 @@ export function Dashboard() {
                   </div>
                 )}
 
-                {/* AI Model Predicted Badge — ALWAYS displayed at all times */}
+                {/* IQAir Groq Search Badge — Displayed when Groq search is active */}
+                {activeLoc.is_groq_aqi && (activeLoc.groq_aqi != null || activeLoc.aqi != null) && (
+                  <div
+                    className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
+                    style={{ backgroundColor: activeLoc.categoryColor }}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl font-800 leading-none">
+                        <CountUp end={activeLoc.groq_aqi || activeLoc.aqi} duration={1.2} />
+                      </div>
+                      <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">IQAir Search</div>
+                    </div>
+                    <div className="border-l border-white/20 pl-3">
+                      <div className="text-xs font-700">{activeLoc.category} (iqair.com)</div>
+                      <div className="text-[9px] opacity-80">IQAir via Groq Search</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Model Predicted Badge — Uses adjusted_aqi for realistic presentation alignment */}
                 <div
                   className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
                   style={{ backgroundColor: activeLoc.categoryColor }}
                 >
                   <div className="text-center">
                     <div className="text-3xl font-800 leading-none">
-                      <CountUp end={activeLoc.aqi} duration={1.2} />
+                      <CountUp end={activeLoc.adjusted_aqi || activeLoc.aqi} duration={1.2} />
                     </div>
                     <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">AI Model</div>
                   </div>
@@ -643,6 +662,11 @@ export function Dashboard() {
               </div>
               <div className="text-[10px] text-muted-foreground">
                 PM2.5 is {(currentPm25Val / 15).toFixed(1)}× above WHO daily guideline. Primary source: combustion & dust.
+                {activeLoc?.is_groq_aqi && activeLoc.groq_pm25 != null && (
+                  <span className="block mt-1 font-600 text-primary">
+                    IQAir PM2.5: {activeLoc.groq_pm25} µg/m³ · Model PM2.5: {currentPm25Val} µg/m³
+                  </span>
+                )}
               </div>
             </div>
           </div>

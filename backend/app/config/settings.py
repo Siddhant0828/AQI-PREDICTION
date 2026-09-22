@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="")
     redis_ttl_seconds: int = Field(default=86400)
 
+    # Groq API Configuration & Search AQI Toggle
+    use_groq_aqi: bool = Field(default=True)
+    groq_api_key: str = Field(default="")
+    groq_model: str = Field(default="llama-3.3-70b-versatile")
+    groq_base_url: str = Field(default="https://api.groq.com/openai/v1")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

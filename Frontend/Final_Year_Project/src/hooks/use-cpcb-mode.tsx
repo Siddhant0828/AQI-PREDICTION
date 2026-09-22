@@ -13,22 +13,39 @@ const CpcbModeContext = createContext<CpcbModeContextValue | undefined>(undefine
 
 const STORAGE_KEY = 'aerosense-cpcb-mode';
 
+// Enforce environment variable gate for showing official CPCB AQI components
+const IS_CPCB_ENABLED_BY_ENV = import.meta.env.VITE_SHOW_OFFICIAL_CPCB === 'true';
+
 export function CpcbModeProvider({ children }: { children: ReactNode }) {
   const [showCpcb, setShowCpcbState] = useState<boolean>(() => {
+    if (!IS_CPCB_ENABLED_BY_ENV) return false;
     if (typeof window === 'undefined') return false;
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'true'; // Default is false: show model predicted AQI at all times
+    return stored === 'true';
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, String(showCpcb));
+    if (IS_CPCB_ENABLED_BY_ENV) {
+      localStorage.setItem(STORAGE_KEY, String(showCpcb));
+    }
   }, [showCpcb]);
 
-  const setShowCpcb = useCallback((val: boolean) => setShowCpcbState(val), []);
-  const toggleCpcb = useCallback(() => setShowCpcbState((prev) => !prev), []);
+  const setShowCpcb = useCallback((val: boolean) => {
+    if (IS_CPCB_ENABLED_BY_ENV) {
+      setShowCpcbState(val);
+    }
+  }, []);
+
+  const toggleCpcb = useCallback(() => {
+    if (IS_CPCB_ENABLED_BY_ENV) {
+      setShowCpcbState((prev) => !prev);
+    }
+  }, []);
+
+  const activeShowCpcb = IS_CPCB_ENABLED_BY_ENV ? showCpcb : false;
 
   return (
-    <CpcbModeContext.Provider value={{ showCpcb, toggleCpcb, setShowCpcb }}>
+    <CpcbModeContext.Provider value={{ showCpcb: activeShowCpcb, toggleCpcb, setShowCpcb }}>
       {children}
     </CpcbModeContext.Provider>
   );
@@ -48,6 +65,7 @@ interface CpcbToggleSwitchProps {
 }
 
 export function CpcbToggleSwitch({ variant = 'default', className }: CpcbToggleSwitchProps) {
+  if (!IS_CPCB_ENABLED_BY_ENV) return null;
   const { showCpcb, toggleCpcb } = useCpcbMode();
 
   if (variant === 'compact') {
@@ -146,7 +164,7 @@ export function CpcbToggleSwitch({ variant = 'default', className }: CpcbToggleS
         aria-checked={showCpcb}
         onClick={toggleCpcb}
         className={cn(
-          'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+          'relative inline-flex h-6 w-11 shrink-0 cursor-cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           showCpcb ? 'bg-emerald-500' : 'bg-muted-foreground/30'
         )}
         title={showCpcb ? 'Click to show AI Model AQI only' : 'Click to enable CPCB station AQI'}
