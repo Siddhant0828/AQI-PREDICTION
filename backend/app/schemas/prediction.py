@@ -43,6 +43,13 @@ class PredictionResult(BaseModel):
     cpcb_nh3: float | None = None
     cpcb_distance_km: float | None = None
 
+    # Official CPCB Indian NAQI Calculator Result
+    cpcb_official_aqi: float | None = None
+    cpcb_official_category: str | None = None
+    cpcb_official_dominant_pollutant: str | None = None
+    cpcb_official_sub_indices: dict[str, float] | None = None
+    cpcb_official_details: dict | None = None
+
 
 class PredictionResponse(PredictionResult):
     pass

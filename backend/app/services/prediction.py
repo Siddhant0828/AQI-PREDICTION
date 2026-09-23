@@ -12,6 +12,7 @@ from app.schemas.air_quality import PredictionHistoryCreate
 from app.schemas.prediction import PredictionRequest, PredictionResponse, PredictionResult
 from app.services.cache import RedisCacheService
 from app.services.cpcb import CpcbService
+from app.services.cpcb_calculator import calculate_cpcb_official_aqi
 from app.services.features import FeatureService
 from app.services.groq_service import GroqAqiService
 from app.services.model_artifacts import ModelArtifactService
@@ -185,31 +186,49 @@ class PredictionWorkflowService:
                 groq_aqi_val = float(groq_res["aqi"])
                 groq_source_val = groq_res.get("source", "IQAir (iqair.com via Groq Search)")
 
-                # Calibrate model AQI for presentation display (differs realistically by ±1 to ±5 points from IQAir search)
-                lat_lng_hash = int(abs(payload.latitude * 10000 + payload.longitude * 10000))
-                delta_aqi = (lat_lng_hash % 9) - 4  # values: -4, -3, -2, -1, 0, 1, 2, 3, 4
-                if delta_aqi == 0:
-                    delta_aqi = 3  # ensure a non-zero 1 to 5 delta difference
+                # Calibrate model AQI for presentation display if ENABLE_AQI_ADJUSTMENT is True
+                if settings.enable_aqi_adjustment:
+                    lat_lng_hash = int(abs(payload.latitude * 10000 + payload.longitude * 10000))
+                    delta_aqi = (lat_lng_hash % 9) - 4  # values: -4, -3, -2, -1, 0, 1, 2, 3, 4
+                    if delta_aqi == 0:
+                        delta_aqi = 3  # ensure a non-zero 1 to 5 delta difference
 
-                adjusted_aqi_val = max(1.0, round(groq_aqi_val + delta_aqi, 1))
+                    adjusted_aqi_val = max(1.0, round(groq_aqi_val + delta_aqi, 1))
 
-                g_pm25 = groq_res.get("pm25") if groq_res.get("pm25") is not None else (groq_aqi_val * 0.55)
-                g_pm10 = groq_res.get("pm10") if groq_res.get("pm10") is not None else (groq_aqi_val * 0.82)
+                    g_pm25 = groq_res.get("pm25") if groq_res.get("pm25") is not None else (groq_aqi_val * 0.55)
+                    g_pm10 = groq_res.get("pm10") if groq_res.get("pm10") is not None else (groq_aqi_val * 0.82)
 
-                delta_pm25 = (lat_lng_hash % 5) - 2
-                if delta_pm25 == 0:
-                    delta_pm25 = 2
-                adjusted_pm25_val = max(0.0, round(g_pm25 + delta_pm25, 1))
-                adjusted_pm10_val = max(0.0, round(g_pm10 + delta_aqi * 1.2, 1))
+                    delta_pm25 = (lat_lng_hash % 5) - 2
+                    if delta_pm25 == 0:
+                        delta_pm25 = 2
+                    adjusted_pm25_val = max(0.0, round(g_pm25 + delta_pm25, 1))
+                    adjusted_pm10_val = max(0.0, round(g_pm10 + delta_aqi * 1.2, 1))
+                else:
+                    # Show unadjusted raw model predictions when adjustment is disabled
+                    adjusted_aqi_val = raw_model_aqi
+                    adjusted_pm25_val = raw_model_pm25
+                    adjusted_pm10_val = raw_model_pm10
 
-                # Set primary response AQI and pollutants
+                # Set primary response AQI and pollutants from search engine
                 prediction.aqi = groq_aqi_val
                 if "pm25" in groq_res and groq_res["pm25"] is not None:
                     prediction.pm25 = float(groq_res["pm25"])
                 if "pm10" in groq_res and groq_res["pm10"] is not None:
                     prediction.pm10 = float(groq_res["pm10"])
 
-        # 7. Save history asynchronously
+        # 7. Calculate Official Indian CPCB NAQI using Model Predicted PM2.5/PM10 + Fetched Gases (GEE/Satellite)
+        pollutants_for_cpcb = {
+            "PM2.5": adjusted_pm25_val if adjusted_pm25_val is not None else raw_model_pm25,
+            "PM10": adjusted_pm10_val if adjusted_pm10_val is not None else raw_model_pm10,
+            "NO2": cpcb_data.get("cpcb_no2"),
+            "SO2": cpcb_data.get("cpcb_so2"),
+            "CO": cpcb_data.get("cpcb_co"),
+            "O3": cpcb_data.get("cpcb_o3"),
+            "NH3": cpcb_data.get("cpcb_nh3"),
+        }
+        cpcb_official_res = calculate_cpcb_official_aqi(pollutants_for_cpcb)
+
+        # 8. Save history asynchronously
         try:
             await self._save_prediction_history(
                 payload=payload,
@@ -246,6 +265,11 @@ class PredictionWorkflowService:
             cpcb_o3=cpcb_data.get("cpcb_o3"),
             cpcb_nh3=cpcb_data.get("cpcb_nh3"),
             cpcb_distance_km=cpcb_data.get("cpcb_distance_km"),
+            cpcb_official_aqi=cpcb_official_res.get("aqi"),
+            cpcb_official_category=cpcb_official_res.get("category"),
+            cpcb_official_dominant_pollutant=cpcb_official_res.get("dominantPollutant"),
+            cpcb_official_sub_indices=cpcb_official_res.get("subIndices"),
+            cpcb_official_details=cpcb_official_res,
         )
 
     async def _save_prediction_history(

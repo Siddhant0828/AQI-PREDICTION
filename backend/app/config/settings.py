@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     groq_model: str = Field(default="llama-3.3-70b-versatile")
     groq_base_url: str = Field(default="https://api.groq.com/openai/v1")
 
+    # Enable Model AQI Adjustment Toggle
+    enable_aqi_adjustment: bool = Field(default=True)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -100,6 +100,12 @@ export interface LocationAirData {
   adjusted_pm25?: number | null;
   adjusted_pm10?: number | null;
 
+  cpcb_official_aqi?: number | null;
+  cpcb_official_category?: string | null;
+  cpcb_official_dominant_pollutant?: string | null;
+  cpcb_official_sub_indices?: Record<string, number> | null;
+  cpcb_official_details?: any;
+
   trend24h?: Array<{ time: string; pm25: number }>;
   trend7d?: Array<{ date: string; aqi: number; pm25: number; no2: number }>;
   forecast5d?: Array<{ date: string; predicted: number; confidence: number }>;
@@ -114,8 +120,16 @@ function advisory(aqi: number): string {
   return 'Severe pollution. Emergency conditions. Stay indoors. Use air purifiers.';
 }
 
-function calculateCpcbAqi(pm25?: number | null, pm10?: number | null): number {
-  if (pm25 == null && pm10 == null) return 50;
+export function calculateCpcbAqi(
+  pm25?: number | null,
+  pm10?: number | null,
+  no2?: number | null,
+  so2?: number | null,
+  co?: number | null,
+  o3?: number | null,
+  nh3?: number | null
+): number {
+  if (pm25 == null && pm10 == null && no2 == null && so2 == null && co == null && o3 == null && nh3 == null) return 50;
 
   const getSubIndex = (cp: number, bps: Array<[number, number, number, number]>) => {
     for (const [cLow, cHigh, iLow, iHigh] of bps) {
@@ -127,28 +141,38 @@ function calculateCpcbAqi(pm25?: number | null, pm10?: number | null): number {
   };
 
   const pm25Bps: Array<[number, number, number, number]> = [
-    [0, 30, 0, 50],
-    [31, 60, 51, 100],
-    [61, 90, 101, 200],
-    [91, 120, 201, 300],
-    [121, 250, 301, 400],
-    [250.1, 5000, 401, 500],
+    [0, 30, 0, 50], [31, 60, 51, 100], [61, 90, 101, 200], [91, 120, 201, 300], [121, 250, 301, 400], [250.1, 5000, 401, 500]
   ];
-
   const pm10Bps: Array<[number, number, number, number]> = [
-    [0, 50, 0, 50],
-    [51, 100, 51, 100],
-    [101, 250, 101, 200],
-    [251, 350, 201, 300],
-    [351, 430, 301, 400],
-    [430.1, 5000, 401, 500],
+    [0, 50, 0, 50], [51, 100, 51, 100], [101, 250, 101, 200], [251, 350, 201, 300], [351, 430, 301, 400], [430.1, 5000, 401, 500]
+  ];
+  const no2Bps: Array<[number, number, number, number]> = [
+    [0, 40, 0, 50], [41, 80, 51, 100], [81, 180, 101, 200], [181, 280, 201, 300], [281, 400, 301, 400], [400.1, 5000, 401, 500]
+  ];
+  const so2Bps: Array<[number, number, number, number]> = [
+    [0, 40, 0, 50], [41, 80, 51, 100], [81, 380, 101, 200], [381, 800, 201, 300], [801, 1600, 301, 400], [1600.1, 5000, 401, 500]
+  ];
+  const coBps: Array<[number, number, number, number]> = [
+    [0, 1, 0, 50], [1.1, 2, 51, 100], [2.1, 10, 101, 200], [10.1, 17, 201, 300], [17.1, 34, 301, 400], [34.1, 500, 401, 500]
+  ];
+  const o3Bps: Array<[number, number, number, number]> = [
+    [0, 50, 0, 50], [51, 100, 51, 100], [101, 168, 101, 200], [169, 208, 201, 300], [209, 748, 301, 400], [748.1, 5000, 401, 500]
+  ];
+  const nh3Bps: Array<[number, number, number, number]> = [
+    [0, 200, 0, 50], [201, 400, 51, 100], [401, 800, 101, 200], [801, 1200, 201, 300], [1201, 1800, 301, 400], [1800.1, 5000, 401, 500]
   ];
 
-  const i25 = pm25 != null ? getSubIndex(pm25, pm25Bps) : -1;
-  const i10 = pm10 != null ? getSubIndex(pm10, pm10Bps) : -1;
+  const indices = [
+    pm25 != null ? getSubIndex(pm25, pm25Bps) : -1,
+    pm10 != null ? getSubIndex(pm10, pm10Bps) : -1,
+    no2 != null ? getSubIndex(no2, no2Bps) : -1,
+    so2 != null ? getSubIndex(so2, so2Bps) : -1,
+    co != null ? getSubIndex(co, coBps) : -1,
+    o3 != null ? getSubIndex(o3, o3Bps) : -1,
+    nh3 != null ? getSubIndex(nh3, nh3Bps) : -1,
+  ].filter((i) => i >= 0);
 
-  const valid = [i25, i10].filter((i) => i >= 0);
-  return valid.length > 0 ? Math.round(Math.max(...valid)) : 50;
+  return indices.length > 0 ? Math.round(Math.max(...indices)) : 50;
 }
 
 // Generate plausible air quality data based on coordinates (deterministic seed from lat/lng)
@@ -302,7 +326,10 @@ export async function fetchAirDataForCoordinates(
         has_cpcb_station: boolean, cpcb_station_name: string | null,
         cpcb_aqi: number | null, cpcb_pm25: number | null, cpcb_pm10: number | null,
         cpcb_no2?: number | null, cpcb_so2?: number | null, cpcb_co?: number | null, cpcb_o3?: number | null, cpcb_nh3?: number | null,
-        cpcb_distance_km: number | null
+        cpcb_distance_km: number | null,
+        cpcb_official_aqi?: number | null, cpcb_official_category?: string | null,
+        cpcb_official_dominant_pollutant?: string | null, cpcb_official_sub_indices?: Record<string, number> | null,
+        cpcb_official_details?: any
       }>('/predict', {
         latitude: lat,
         longitude: lng,
@@ -433,6 +460,14 @@ export async function fetchAirDataForCoordinates(
         if (predictRes.pm10 != null) airData.groq_pm10 = Math.round(predictRes.pm10);
         if (predictRes.adjusted_pm25 != null) airData.adjusted_pm25 = Math.round(predictRes.adjusted_pm25);
         if (predictRes.adjusted_pm10 != null) airData.adjusted_pm10 = Math.round(predictRes.adjusted_pm10);
+      }
+
+      if (predictRes.cpcb_official_aqi != null) {
+        airData.cpcb_official_aqi = Math.round(predictRes.cpcb_official_aqi);
+        airData.cpcb_official_category = predictRes.cpcb_official_category;
+        airData.cpcb_official_dominant_pollutant = predictRes.cpcb_official_dominant_pollutant;
+        airData.cpcb_official_sub_indices = predictRes.cpcb_official_sub_indices;
+        airData.cpcb_official_details = predictRes.cpcb_official_details;
       }
 
       const cat = aqiCategory(airData.aqi);

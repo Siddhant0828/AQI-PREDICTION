@@ -1,6 +1,6 @@
 import { aqiCategory } from '@/components/AqiBadge';
 import { KpiCard } from '@/components/KpiCard';
-import { fetchAirDataForCoordinates, LocationAirData, LocationSearch } from '@/components/LocationSearch';
+import { calculateCpcbAqi, fetchAirDataForCoordinates, LocationAirData, LocationSearch } from '@/components/LocationSearch';
 import { SectionCard } from '@/components/SectionCard';
 import dashData from '@/data/dashboard.json';
 import { cn } from '@/lib/utils';
@@ -261,6 +261,11 @@ export function Dashboard() {
   const currentPm25Val = activeLoc ? activeLoc.pm25 : pm25.value;
   const currentPm25Cat = aqiCategory(currentPm25Val);
 
+  const officialCpcbVal = activeLoc?.cpcb_official_aqi != null
+    ? Math.round(activeLoc.cpcb_official_aqi)
+    : (activeLoc ? calculateCpcbAqi(activeLoc.pm25, activeLoc.pm10, activeLoc.no2, activeLoc.so2, activeLoc.co, activeLoc.o3, activeLoc.nh3) : 0);
+  const officialCpcbCat = aqiCategory(officialCpcbVal);
+
   return (
     <div className="space-y-5">
       {/* Current AQI Banner — User GPS Location + Side-by-Side CPCB vs Model Comparison (TOP) */}
@@ -305,28 +310,28 @@ export function Dashboard() {
                 )}
               </div>
 
-              {/* Side-by-side AQI Badges & CPCB Toggle */}
+              {/* Side-by-side AQI Badges: Official Indian CPCB vs IQAir US EPA vs Model */}
               <div className="flex flex-wrap items-center gap-4">
-                {/* Official CPCB Badge — Only displayed when toggle is enabled */}
-                {showCpcb && activeLoc.has_cpcb_station && activeLoc.cpcb_aqi != null && (
-                  <div
-                    className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
-                    style={{ backgroundColor: activeLoc.cpcb_categoryColor || activeLoc.categoryColor }}
-                  >
-                    <div className="text-center">
-                      <div className="text-3xl font-800 leading-none">
-                        <CountUp end={activeLoc.cpcb_aqi} duration={1.2} />
-                      </div>
-                      <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">Official CPCB</div>
+                {/* 1. Official Indian CPCB NAQI Badge */}
+                <div
+                  className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
+                  style={{ backgroundColor: officialCpcbCat.color }}
+                >
+                  <div className="text-center">
+                    <div className="text-3xl font-800 leading-none">
+                      <CountUp end={officialCpcbVal} duration={1.2} />
                     </div>
-                    <div className="border-l border-white/20 pl-3">
-                      <div className="text-xs font-700">{activeLoc.cpcb_category || activeLoc.category}</div>
-                      <div className="text-[9px] opacity-80 truncate max-w-[150px]">{activeLoc.cpcb_station_name}</div>
+                    <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">Indian CPCB NAQI</div>
+                  </div>
+                  <div className="border-l border-white/20 pl-3">
+                    <div className="text-xs font-700">{activeLoc.cpcb_official_category || officialCpcbCat.label}</div>
+                    <div className="text-[9px] opacity-80 truncate max-w-[140px]">
+                      {activeLoc.cpcb_official_dominant_pollutant ? `Dominant: ${activeLoc.cpcb_official_dominant_pollutant}` : 'CPCB Formula'}
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* IQAir Groq Search Badge — Displayed when Groq search is active */}
+                {/* 2. IQAir Groq Search Badge */}
                 {activeLoc.is_groq_aqi && (activeLoc.groq_aqi != null || activeLoc.aqi != null) && (
                   <div
                     className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
@@ -336,16 +341,16 @@ export function Dashboard() {
                       <div className="text-3xl font-800 leading-none">
                         <CountUp end={activeLoc.groq_aqi || activeLoc.aqi} duration={1.2} />
                       </div>
-                      <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">IQAir Search</div>
+                      <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">IQAir US EPA</div>
                     </div>
                     <div className="border-l border-white/20 pl-3">
                       <div className="text-xs font-700">{activeLoc.category} (iqair.com)</div>
-                      <div className="text-[9px] opacity-80">IQAir via Groq Search</div>
+                      <div className="text-[9px] opacity-80">Groq Search (US EPA)</div>
                     </div>
                   </div>
                 )}
 
-                {/* AI Model Predicted Badge — Uses adjusted_aqi for realistic presentation alignment */}
+                {/* 3. AI Model Predicted Badge */}
                 <div
                   className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
                   style={{ backgroundColor: activeLoc.categoryColor }}
@@ -358,16 +363,35 @@ export function Dashboard() {
                   </div>
                   <div className="border-l border-white/20 pl-3">
                     <div className="text-xs font-700">{activeLoc.category} (Predicted)</div>
-                    <div className="text-[9px] opacity-80">Enhanced CNN-BiLSTM Attention</div>
+                    <div className="text-[9px] opacity-80">Enhanced CNN-BiLSTM</div>
                   </div>
                 </div>
+
+                {/* 4. CPCB Ground Station Badge (if available and toggle enabled) */}
+                {showCpcb && activeLoc.has_cpcb_station && activeLoc.cpcb_aqi != null && (
+                  <div
+                    className="flex items-center gap-3 rounded-2xl p-3 text-white shadow-md border border-white/10"
+                    style={{ backgroundColor: activeLoc.cpcb_categoryColor || activeLoc.categoryColor }}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl font-800 leading-none">
+                        <CountUp end={activeLoc.cpcb_aqi} duration={1.2} />
+                      </div>
+                      <div className="mt-1 text-[8px] font-bold tracking-wider uppercase opacity-90">CPCB Monitor</div>
+                    </div>
+                    <div className="border-l border-white/20 pl-3">
+                      <div className="text-xs font-700">{activeLoc.cpcb_category || activeLoc.category}</div>
+                      <div className="text-[9px] opacity-80 truncate max-w-[130px]">{activeLoc.cpcb_station_name}</div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Dedicated CPCB toggle switch */}
                 <CpcbToggleSwitch variant="default" />
               </div>
 
               <div className="text-[11px] text-muted-foreground">
-                Primary pollutant: <span className="font-600 text-foreground">{activeLoc.dominantPollutant || 'PM2.5'}</span> · Dominant source: <span className="font-600 text-foreground">{activeLoc.primarySource || 'Vehicular + Industrial'}</span>
+                Primary pollutant: <span className="font-600 text-foreground">{activeLoc.cpcb_official_dominant_pollutant || activeLoc.dominantPollutant || 'PM2.5'}</span> · Dominant source: <span className="font-600 text-foreground">{activeLoc.primarySource || 'Vehicular + Industrial'}</span>
               </div>
             </div>
 
